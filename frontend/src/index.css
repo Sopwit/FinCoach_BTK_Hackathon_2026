@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  
+  --color-brand-primary: #00FF66;
+  --color-brand-secondary: #16C784;
+  --color-bg-dark: #030706;
+  --color-bg-card: #0B1110;
+  --color-bg-card-hover: #0d1513;
+  --color-border-subtle: #1B2A24;
+  --color-border-hover: rgba(0, 255, 102, 0.4);
+  --color-text-main: #F4F7F5;
+  --color-text-muted: #8A968F;
+  --color-text-dim: #66726B;
+}
+
+:root {
+  font-family: var(--font-sans);
+  color: var(--color-text-main);
+  background: var(--color-bg-dark);
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(0, 255, 102, 0.15), transparent 40rem),
+    radial-gradient(circle at 0% 100%, rgba(22, 199, 132, 0.1), transparent 40rem),
+    radial-gradient(circle at 50% 50%, rgba(0, 255, 102, 0.03), transparent 50rem),
+    var(--color-bg-dark);
+  background-attachment: fixed;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(0, 255, 102, 0.3);
+  color: #fff;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(3, 7, 6, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1B2A24;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a4037;
+}
+
+/* Base Input Styles */
+.input {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid var(--color-border-subtle);
+  background: rgba(3, 7, 6, 0.6);
+  padding: 0.875rem 1.25rem;
+  color: white;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+}
+
+.input::placeholder {
+  color: var(--color-text-dim);
+}
+
+.input:focus {
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 4px rgba(0, 255, 102, 0.1);
+  background: rgba(11, 17, 16, 0.8);
+}
+
+/* Premium Glass Cards */
+.glass-card {
+  border: 1px solid var(--color-border-subtle);
+  background: linear-gradient(145deg, rgba(11, 17, 16, 0.7), rgba(5, 8, 7, 0.9));
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(0, 255, 102, 0.2);
+  box-shadow: 0 12px 48px rgba(0, 255, 102, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+/* Glowing effects */
+.green-glow {
+  box-shadow: 0 0 30px rgba(0, 255, 102, 0.2), inset 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.green-glow-text {
+  text-shadow: 0 0 20px rgba(0, 255, 102, 0.4);
+}
+
+/* Background Grid Pattern */
+.soft-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  background-position: center center;
+}
+
+/* Charts Tooltip Customization */
+.recharts-tooltip-cursor {
+  fill: rgba(0, 255, 102, 0.05) !important;
+}
+
+/* Animations */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
