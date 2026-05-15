@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { AlertTriangle, CheckCircle2, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
-import { deleteBudget, getBudgetStatus, setBudget, updateBudget } from '../services/client'
-import { DEFAULT_MONTH, DEFAULT_USER_ID } from '../services/config'
+import { deleteBudget, getBudgets, getBudgetStatus, setBudget, updateBudget } from '../services/client'
+import { useDemo } from '../hooks/useDemo'
 import { formatCurrency } from '../utils/formatCurrency'
 
 const categories = ['Yemek', 'Market', 'Ulaşım', 'Abonelik', 'Fatura', 'Eğitim', 'Diğer']
@@ -14,18 +14,24 @@ export default function BudgetsPage() {
   const [form, setForm] = useState({ category: 'Yemek', monthly_limit: '' })
   const [editingId, setEditingId] = useState(null)
   const [editValue, setEditValue] = useState('')
+  const [rawBudgets, setRawBudgets] = useState([])
+  const { selectedMonth, selectedUserId } = useDemo()
 
-  const loadBudgets = async () => {
+  const loadBudgets = useCallback(async () => {
     setLoading(true)
-    const response = await getBudgetStatus({ user_id: DEFAULT_USER_ID, month: DEFAULT_MONTH })
-    setItems(response.data.budgets || [])
+    const [statusResponse, rawResponse] = await Promise.all([
+      getBudgetStatus({ user_id: selectedUserId, month: selectedMonth }),
+      getBudgets({ user_id: selectedUserId }),
+    ])
+    setItems(statusResponse.data.budgets || [])
+    setRawBudgets(rawResponse.data || [])
     setLoading(false)
-  }
+  }, [selectedMonth, selectedUserId])
 
   useEffect(() => {
     const timer = window.setTimeout(loadBudgets, 0)
     return () => window.clearTimeout(timer)
-  }, [])
+  }, [loadBudgets])
 
   const totalLimit = useMemo(() => items.reduce((sum, item) => sum + item.monthly_limit, 0), [items])
   const totalSpent = useMemo(() => items.reduce((sum, item) => sum + item.spent, 0), [items])
@@ -37,7 +43,7 @@ export default function BudgetsPage() {
     if (!form.category || Number.isNaN(limit) || limit <= 0) return
 
     setSaving(true)
-    await setBudget({ user_id: DEFAULT_USER_ID, category: form.category, monthly_limit: limit })
+    await setBudget({ user_id: selectedUserId, category: form.category, monthly_limit: limit })
     setForm({ category: 'Yemek', monthly_limit: '' })
     await loadBudgets()
     setSaving(false)
@@ -126,6 +132,36 @@ export default function BudgetsPage() {
           )}
         </section>
       </div>
+
+      <section className="glass-card mt-8 overflow-hidden rounded-3xl">
+        <div className="border-b border-[#1B2A24]/60 px-6 py-5">
+          <h3 className="text-lg font-bold text-white">Ham Bütçe Listesi</h3>
+          <p className="mt-1 text-sm text-[#8A968F]">GET /budgets/ yanıtı, durum hesaplamasından ayrı olarak gösterilir.</p>
+        </div>
+        {loading ? (
+          <div className="p-8 text-center text-[#8A968F]">Ham bütçe listesi yükleniyor...</div>
+        ) : rawBudgets.length === 0 ? (
+          <div className="p-8 text-center text-[#8A968F]">Kayıtlı bütçe yok.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead className="bg-[#050807]/60 text-xs uppercase tracking-wider text-[#8A968F]">
+                <tr><th className="px-5 py-4">ID</th><th className="px-5 py-4">Kategori</th><th className="px-5 py-4">Limit</th><th className="px-5 py-4">Oluşturulma</th></tr>
+              </thead>
+              <tbody>
+                {rawBudgets.map((budget) => (
+                  <tr key={budget.id} className="border-t border-[#1B2A24]/40 text-[#B7C2BC]">
+                    <td className="px-5 py-4">#{budget.id}</td>
+                    <td className="px-5 py-4 font-bold text-white">{budget.category}</td>
+                    <td className="px-5 py-4 font-black text-[#00FF66]">{formatCurrency(budget.monthly_limit)}</td>
+                    <td className="px-5 py-4 text-xs text-[#8A968F]">{formatDateTime(budget.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   )
 }
@@ -137,6 +173,17 @@ function Metric({ title, value, danger }) {
       <p className={`mt-1 text-2xl font-black ${danger ? 'text-red-400' : 'text-white'}`}>{value}</p>
     </div>
   )
+}
+
+function formatDateTime(value) {
+  if (!value) return '-'
+  return new Intl.DateTimeFormat('tr-TR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
 }
 
 function BudgetRow({ item, editing, editValue, onEditValue, onStartEdit, onSave, onCancel, onDelete }) {

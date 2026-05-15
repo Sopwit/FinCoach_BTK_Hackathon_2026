@@ -82,12 +82,23 @@ export async function createUser(payload) {
   return { data: newUser }
 }
 
+export async function getUsers() {
+  await wait()
+  const db = getDB()
+  return { data: db.users }
+}
+
 export async function getUser(userId) {
   await wait()
   const db = getDB()
   const id = userId || getCurrentUserId()
   const user = db.users.find((u) => u.id === id) || mockUser
   return { data: user }
+}
+
+export async function getHealth() {
+  await wait(100)
+  return { data: { status: 'ok' } }
 }
 
 export async function addManualTransaction(payload) {
@@ -126,9 +137,12 @@ export async function uploadTransactions() {
 
   return {
     data: {
-      total_rows: 23,
-      inserted_rows: 21,
-      failed_rows: 2,
+      inserted_count: mockTransactions.length,
+      skipped_count: 0,
+      totalRows: mockTransactions.length,
+      insertedRows: mockTransactions.length,
+      failedRows: 0,
+      transactions: mockTransactions.filter((tx) => tx.user_id === 1 || !tx.user_id).slice(0, 12),
       message: 'İşlemler başarıyla içe aktarıldı.',
     },
   }
@@ -176,6 +190,53 @@ export async function getCategories() {
   return { data: mockCategories }
 }
 
+export async function getDashboard() {
+  await wait()
+  if (!hasTransactions()) {
+    return {
+      data: {
+        summary: {
+          total_income: 0,
+          total_expense: 0,
+          remaining_budget: 0,
+          top_category: '-',
+        },
+        cards: [],
+        categories: [],
+        budget_status: [],
+        charts: { monthly_comparison: [], spending_habits: [], budget_usage: [] },
+      },
+    }
+  }
+
+  return {
+    data: {
+      summary: mockSummary,
+      cards: [
+        { key: 'total_income', title: 'Toplam Gelir', value: mockSummary.total_income, unit: 'TL' },
+        { key: 'total_expense', title: 'Toplam Gider', value: mockSummary.total_expense, unit: 'TL' },
+        { key: 'remaining_budget', title: 'Kalan Bütçe', value: mockSummary.remaining_budget, unit: 'TL' },
+        { key: 'top_category', title: 'En Çok Harcama', value: mockSummary.top_category, unit: null },
+        { key: 'financial_health', title: 'Finansal Sağlık Skoru', value: 74, unit: '/100', status: 'Dengeli' },
+      ],
+      categories: mockCategories,
+      monthly_comparison: mockMonthlyComparison,
+      recurring_payments: mockRecurringPayments,
+      spending_habits: { frequent_sub_categories: mockHabits, frequent_descriptions: mockHabits },
+      budget_status: [],
+      charts: {
+        category_distribution: mockCategories,
+        monthly_comparison: mockMonthlyComparison,
+        spending_habits: mockHabits,
+        budget_usage: [],
+      },
+      alerts: [],
+      quick_insights: ['Demo verisi yüklendi.'],
+      advice: mockAiAdvice,
+    },
+  }
+}
+
 export async function getMonthlyComparison() {
   await wait()
   if (!hasTransactions()) return { data: [] }
@@ -185,13 +246,18 @@ export async function getMonthlyComparison() {
 export async function getRecurringPayments() {
   await wait()
   if (!hasTransactions()) return { data: [] }
-  return { data: mockRecurringPayments }
+  return { data: mockRecurringPayments.map((item) => ({ ...item, description: item.name, average_amount: item.amount, count: 1, category: 'Abonelik', sub_category: item.type })) }
 }
 
 export async function getHabits() {
   await wait()
-  if (!hasTransactions()) return { data: [] }
-  return { data: mockHabits }
+  if (!hasTransactions()) return { data: { frequent_sub_categories: [], frequent_descriptions: [] } }
+  return {
+    data: {
+      frequent_sub_categories: mockHabits.map((item) => ({ ...item, sub_category: item.category })),
+      frequent_descriptions: mockHabits.map((item) => ({ ...item, description: item.name })),
+    },
+  }
 }
 
 export async function getAiAdvice() {
@@ -207,6 +273,17 @@ export async function getAiAdvice() {
     }
   }
   return { data: mockAiAdvice }
+}
+
+export async function sendChatMessage(payload) {
+  await wait(500)
+  return {
+    data: {
+      answer: `Demo yanıtı: "${payload.message}" sorusunu mevcut uygulama context'i ile değerlendirdim. Yatırım tavsiyesi vermeden harcama ve bütçe verilerine odaklanıyorum.`,
+      used_context_summary: 'mock dashboard, işlemler, bütçeler ve alışkanlıklar',
+      warning: null,
+    },
+  }
 }
 
 export async function loadStudentDemoData() {
@@ -229,11 +306,37 @@ export async function loadStudentDemoData() {
   }
 }
 
+export async function clearStudentDemoData() {
+  await wait(400)
+  const db = getDB()
+  const userId = getCurrentUserId() || 1
+  db.transactions = db.transactions.filter(t => !(t.user_id === userId && t.source === 'demo'))
+  db.budgets = db.budgets.filter(b => b.user_id !== userId)
+  setDB(db)
+  return { data: { message: 'Demo verisi temizlendi.' } }
+}
+
 export async function getBudgets() {
   await wait()
   const db = getDB()
   const userId = getCurrentUserId() || 1
   return { data: db.budgets.filter(b => b.user_id === userId) }
+}
+
+export async function getBudgetStatus() {
+  await wait()
+  const db = getDB()
+  const userId = getCurrentUserId() || 1
+  const budgets = db.budgets.filter(b => b.user_id === userId).map((budget) => ({
+    budget_id: budget.id,
+    category: budget.category,
+    monthly_limit: budget.monthly_limit,
+    spent: 0,
+    remaining: budget.monthly_limit,
+    usage_percent: 0,
+    is_exceeded: false,
+  }))
+  return { data: { budgets } }
 }
 
 export async function setBudget(payload) {
@@ -266,6 +369,54 @@ export async function deleteTransaction(transactionId) {
       id: transactionId,
       deleted: true,
       message: 'İşlem başarıyla silindi.',
+    },
+  }
+}
+
+export async function updateTransaction(transactionId, payload) {
+  await wait()
+  const db = getDB()
+  let updated = null
+  db.transactions = db.transactions.map((tx) => {
+    if (tx.id !== transactionId) return tx
+    updated = { ...tx, ...payload }
+    return updated
+  })
+  setDB(db)
+  return { data: updated }
+}
+
+export async function updateBudget(budgetId, payload) {
+  await wait()
+  const db = getDB()
+  let updated = null
+  db.budgets = db.budgets.map((budget) => {
+    if (budget.id !== budgetId) return budget
+    updated = { ...budget, ...payload }
+    return updated
+  })
+  setDB(db)
+  return { data: updated }
+}
+
+export async function deleteBudget(budgetId) {
+  await wait()
+  const db = getDB()
+  db.budgets = db.budgets.filter((budget) => budget.id !== budgetId)
+  setDB(db)
+  return { data: { deleted_budget_id: budgetId } }
+}
+
+export async function getHealthScore() {
+  await wait()
+  return {
+    data: {
+      score: 74,
+      status: 'Dengeli',
+      message: 'Demo finansal sağlık skoru.',
+      metrics: {},
+      reasons: [],
+      positive_points: [],
     },
   }
 }

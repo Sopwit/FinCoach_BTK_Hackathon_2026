@@ -3,42 +3,86 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   CalendarDays,
   CheckCircle2,
+  Circle,
   DatabaseZap,
   Loader2,
   Menu,
+  RotateCcw,
+  Trash2,
   User,
+  XCircle,
 } from 'lucide-react'
-import { loadStudentDemoData, getUser } from '../../services/client'
-import { DEFAULT_USER_ID } from '../../services/config'
-import { useEffect } from 'react'
+import { clearStudentDemoData, loadStudentDemoData } from '../../services/client'
+import { useDemo } from '../../hooks/useDemo'
 
 export default function Topbar({ onMenuToggle }) {
   const [loadingDemo, setLoadingDemo] = useState(false)
-  const [message, setMessage] = useState('')
-  const [user, setUser] = useState({ name: 'Kullanıcı', email: '...' })
-
-  useEffect(() => {
-    getUser().then(res => setUser(res.data))
-  }, [])
+  const [clearingDemo, setClearingDemo] = useState(false)
+  const [notice, setNotice] = useState(null)
+  const {
+    health,
+    selectedMonth,
+    selectedUser,
+    selectedUserId,
+    setSelectedMonth,
+    setSelectedUserId,
+    users,
+    refreshUsers,
+  } = useDemo()
 
   const handleLoadDemoData = async () => {
     setLoadingDemo(true)
-    setMessage('')
+    setNotice(null)
 
-    const response = await loadStudentDemoData({
-      user_id: DEFAULT_USER_ID,
-    })
+    try {
+      const response = await loadStudentDemoData({ user_id: selectedUserId })
+      const alreadyLoaded = response.data.transactions_count === 0
+      setNotice({
+        type: alreadyLoaded ? 'warning' : 'success',
+        title: alreadyLoaded ? 'Demo verisi zaten yüklü' : 'Demo verisi hazır',
+        message: alreadyLoaded
+          ? 'Mevcut demo verisini temizleyip yeniden yükleyebilirsin.'
+          : `${response.data.transactions_count} işlem içeren demo verisi yüklendi.`,
+        canReload: alreadyLoaded,
+      })
+      if (!alreadyLoaded) {
+        window.setTimeout(() => window.location.reload(), 1000)
+      }
+    } catch (error) {
+      const alreadyLoaded = error.message.includes('already been loaded')
+      setNotice({
+        type: alreadyLoaded ? 'warning' : 'error',
+        title: alreadyLoaded ? 'Demo verisi zaten yüklü' : 'Demo yüklenemedi',
+        message: alreadyLoaded
+          ? 'Mevcut demo verisini temizleyip yeniden yükleyebilirsin.'
+          : error.message,
+        canReload: alreadyLoaded,
+      })
+    } finally {
+      setLoadingDemo(false)
+    }
+  }
 
-    setMessage(
-      `${response.data.transactions_count} işlem içeren demo verisi yüklendi. Yönlendiriliyorsunuz...`,
-    )
-
-    setLoadingDemo(false)
-
-    setTimeout(() => {
-      setMessage('')
-      window.location.reload()
-    }, 1500)
+  const handleClearDemoData = async ({ reload = false } = {}) => {
+    setClearingDemo(true)
+    setNotice(null)
+    try {
+      await clearStudentDemoData({ user_id: selectedUserId })
+      setNotice({
+        type: 'success',
+        title: reload ? 'Demo verisi temizlendi' : 'Demo verisi temizlendi',
+        message: reload ? 'Yeni demo verisi yükleniyor...' : 'Seçili kullanıcı için demo kayıtları kaldırıldı.',
+      })
+      if (reload) {
+        await handleLoadDemoData()
+      } else {
+        window.setTimeout(() => window.location.reload(), 800)
+      }
+    } catch (error) {
+      setNotice({ type: 'error', title: 'Demo verisi temizlenemedi', message: error.message })
+    } finally {
+      setClearingDemo(false)
+    }
   }
 
   return (
@@ -58,16 +102,40 @@ export default function Topbar({ onMenuToggle }) {
               <User size={18} className="text-[#00FF66]" />
             </div>
             <div>
-              <p className="text-[13px] font-bold text-white leading-tight">{user.name}</p>
-              <p className="text-[11px] text-[#8A968F] font-medium hidden sm:block">{user.email}</p>
+              <p className="text-[13px] font-bold text-white leading-tight">{selectedUser?.name || 'Kullanıcı'}</p>
+              <p className="text-[11px] text-[#8A968F] font-medium hidden sm:block">{selectedUser?.email || `ID: ${selectedUserId}`}</p>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <div className="hidden items-center gap-2 rounded-xl border border-[#1B2A24] bg-[#0B1110]/60 px-3 py-2 text-xs font-bold text-[#B7C2BC] md:flex">
+            <Circle size={9} className={health.status === 'online' ? 'fill-[#00FF66] text-[#00FF66]' : 'fill-red-400 text-red-400'} />
+            Backend
+          </div>
+
+          <select
+            value={selectedUserId}
+            onChange={(event) => {
+              setSelectedUserId(event.target.value)
+              refreshUsers()
+            }}
+            className="hidden max-w-[190px] rounded-xl border border-[#1B2A24] bg-[#0B1110]/60 px-3 py-2.5 text-xs font-semibold text-[#B7C2BC] backdrop-blur-lg transition-all focus:border-[#00FF66]/50 focus:outline-none sm:block"
+          >
+            {users.length === 0 ? (
+              <option value={selectedUserId}>Kullanıcı {selectedUserId}</option>
+            ) : users.map((item) => (
+              <option key={item.id} value={item.id}>{item.name} #{item.id}</option>
+            ))}
+          </select>
+
           <div className="relative">
             <CalendarDays size={16} className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-[#00FF66] pointer-events-none" />
-            <select className="appearance-none rounded-xl border border-[#1B2A24] bg-[#0B1110]/60 pl-9 sm:pl-11 pr-8 sm:pr-10 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-[#B7C2BC] backdrop-blur-lg focus:border-[#00FF66]/50 focus:outline-none transition-all cursor-pointer">
+            <select
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+              className="appearance-none rounded-xl border border-[#1B2A24] bg-[#0B1110]/60 pl-9 sm:pl-11 pr-8 sm:pr-10 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-[#B7C2BC] backdrop-blur-lg focus:border-[#00FF66]/50 focus:outline-none transition-all cursor-pointer"
+            >
               <option value="2026-05">Mayıs 2026</option>
               <option value="2026-04">Nisan 2026</option>
               <option value="2026-03">Mart 2026</option>
@@ -97,24 +165,54 @@ export default function Topbar({ onMenuToggle }) {
               </>
             )}
           </button>
+
+          <button
+            type="button"
+            onClick={() => handleClearDemoData()}
+            disabled={loadingDemo || clearingDemo}
+            className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold text-red-300 transition-all duration-300 hover:border-red-400/50 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {clearingDemo ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+            <span className="hidden xl:inline">Demo Verisini Temizle</span>
+          </button>
         </div>
       </div>
 
       <AnimatePresence>
-        {message && (
+        {notice && (
           <motion.div
             initial={{ opacity: 0, y: -8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
-            className="absolute right-4 sm:right-6 top-[calc(100%+12px)] z-50 w-[300px] sm:w-[340px] overflow-hidden rounded-2xl border border-[#00FF66]/30 bg-[#0B1110]/95 shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(0,255,102,0.1)] backdrop-blur-2xl"
+            className={[
+              'absolute right-4 sm:right-6 top-[calc(100%+12px)] z-50 w-[300px] sm:w-[360px] overflow-hidden rounded-2xl bg-[#0B1110]/95 shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl',
+              notice.type === 'error' ? 'border border-red-500/30' : notice.type === 'warning' ? 'border border-yellow-500/30' : 'border border-[#00FF66]/30',
+            ].join(' ')}
           >
-            <div className="h-1 w-full bg-gradient-to-r from-[#00FF66] to-[#16C784]" />
+            <div className={[
+              'h-1 w-full',
+              notice.type === 'error' ? 'bg-red-400' : notice.type === 'warning' ? 'bg-yellow-400' : 'bg-gradient-to-r from-[#00FF66] to-[#16C784]',
+            ].join(' ')} />
             <div className="p-4">
               <div className="flex items-start gap-3">
-                <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-[#00FF66]" />
-                <div>
-                  <p className="font-bold text-white">Demo verisi hazır</p>
-                  <p className="mt-1 text-sm leading-6 text-[#B7C2BC]">{message}</p>
+                {notice.type === 'error' ? (
+                  <XCircle size={20} className="mt-0.5 shrink-0 text-red-400" />
+                ) : (
+                  <CheckCircle2 size={20} className={`mt-0.5 shrink-0 ${notice.type === 'warning' ? 'text-yellow-400' : 'text-[#00FF66]'}`} />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-white">{notice.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-[#B7C2BC]">{notice.message}</p>
+                  {notice.canReload && (
+                    <button
+                      type="button"
+                      onClick={() => handleClearDemoData({ reload: true })}
+                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#00FF66] px-3 py-2 text-xs font-bold text-[#041008]"
+                    >
+                      <RotateCcw size={14} />
+                      Temizle ve yeniden yükle
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

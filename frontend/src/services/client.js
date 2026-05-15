@@ -22,6 +22,7 @@ export const {
   getHabits,
   getHealthScore,
   getAiAdvice,
+  sendChatMessage,
   loadStudentDemoData,
   clearStudentDemoData,
   getBudgets,

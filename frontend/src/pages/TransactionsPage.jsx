@@ -2,20 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, FileSpreadsheet, Loader2, Plus, Search, Sparkles, Trash2, UploadCloud, XCircle, ArrowUpRight, ArrowDownRight, Filter, Pencil } from 'lucide-react'
 import { getTransactions, addManualTransaction, deleteTransaction, uploadTransactions, updateTransaction } from '../services/client'
+import { useDemo } from '../hooks/useDemo'
 import { formatCurrency } from '../utils/formatCurrency'
 import { formatDate } from '../utils/formatDate'
-
-const categoryRules = [
-  { category: 'Yemek', sub_category: 'Dışarıdan Sipariş', keywords: ['trendyol yemek', 'yemeksepeti', 'getir yemek'] },
-  { category: 'Yemek', sub_category: 'Kafe', keywords: ['starbucks', 'kahve', 'kafe', 'cafe'] },
-  { category: 'Market', sub_category: 'Ev Alışverişi', keywords: ['bim', 'a101', 'migros', 'şok', 'sok', 'market'] },
-  { category: 'Ulaşım', sub_category: 'Toplu Taşıma', keywords: ['otobüs', 'otobus', 'metro', 'akbil', 'ulaşım'] },
-  { category: 'Abonelik', sub_category: 'Dijital Abonelik', keywords: ['spotify', 'netflix', 'youtube premium', 'exxen', 'blutv'] },
-  { category: 'Fatura', sub_category: 'Telefon', keywords: ['telefon faturası', 'telefon', 'fatura'] },
-  { category: 'Gelir', sub_category: 'Burs', keywords: ['kyk', 'burs'] },
-  { category: 'Gelir', sub_category: 'Aile Desteği', keywords: ['aile desteği', 'aile'] },
-  { category: 'Gelir', sub_category: 'Freelance', keywords: ['freelance', 'iş geliri', 'proje geliri'] },
-]
 
 const csvPreviewRows = [
   { date: '2026-05-03', description: 'Trendyol Yemek', amount: '-430', type: 'expense' },
@@ -24,15 +13,6 @@ const csvPreviewRows = [
 ]
 
 const initialForm = { date: '2026-05-29', description: '', amount: '', type: 'expense', category: 'auto', note: '' }
-
-function detectCategory(description, selectedCategory, type) {
-  if (selectedCategory && selectedCategory !== 'auto') return { category: selectedCategory, sub_category: selectedCategory === 'Gelir' ? 'Diğer Gelir' : 'Diğer' }
-  const norm = description.toLocaleLowerCase('tr-TR')
-  const matched = categoryRules.find((r) => r.keywords.some((k) => norm.includes(k)))
-  if (matched) return { category: matched.category, sub_category: matched.sub_category }
-  if (type === 'income') return { category: 'Gelir', sub_category: 'Diğer Gelir' }
-  return { category: 'Diğer', sub_category: 'Belirsiz' }
-}
 
 export default function TransactionsPage() {
   const fileInputRef = useRef(null)
@@ -49,11 +29,14 @@ export default function TransactionsPage() {
   const [filterSource, setFilterSource] = useState('all')
   const [deletedId, setDeletedId] = useState(null)
   const [editing, setEditing] = useState(null)
+  const [uploadError, setUploadError] = useState('')
+  const { selectedMonth, selectedUserId } = useDemo()
 
   const loadData = useCallback(async () => {
     setLoading(true)
     const res = await getTransactions({
-      month: '2026-05',
+      user_id: selectedUserId,
+      month: selectedMonth,
       type: filterType === 'all' ? undefined : filterType,
       category: filterCategory === 'all' ? undefined : filterCategory,
       source: filterSource === 'all' ? undefined : filterSource,
@@ -61,7 +44,7 @@ export default function TransactionsPage() {
     })
     setTransactions(res.data)
     setLoading(false)
-  }, [filterType, filterCategory, filterSource, searchQuery])
+  }, [filterType, filterCategory, filterSource, searchQuery, selectedMonth, selectedUserId])
 
   useEffect(() => {
     const timer = window.setTimeout(loadData, 0)
@@ -72,7 +55,9 @@ export default function TransactionsPage() {
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
-      const matchesSearch = !searchQuery || t.description.toLocaleLowerCase('tr-TR').includes(searchQuery.toLocaleLowerCase('tr-TR')) || t.category.toLocaleLowerCase('tr-TR').includes(searchQuery.toLocaleLowerCase('tr-TR'))
+      const description = t.description || ''
+      const category = t.category || ''
+      const matchesSearch = !searchQuery || description.toLocaleLowerCase('tr-TR').includes(searchQuery.toLocaleLowerCase('tr-TR')) || category.toLocaleLowerCase('tr-TR').includes(searchQuery.toLocaleLowerCase('tr-TR'))
       const matchesCategory = filterCategory === 'all' || t.category === filterCategory
       const matchesType = filterType === 'all' || t.type === filterType
       const matchesSource = filterSource === 'all' || t.source === filterSource
@@ -90,16 +75,15 @@ export default function TransactionsPage() {
     if (!form.date || !form.description.trim() || !form.amount) return
     const num = Number(form.amount)
     if (Number.isNaN(num) || num <= 0) return
-    const det = detectCategory(form.description, form.category, form.type)
 
     const payload = {
-      user_id: 1,
+      user_id: selectedUserId,
       date: form.date,
       description: form.description.trim(),
       amount: num,
       type: form.type,
-      category: det.category,
-      sub_category: det.sub_category,
+      category: form.category === 'auto' ? null : form.category,
+      sub_category: null,
       note: form.note.trim(),
     }
 
@@ -125,23 +109,29 @@ export default function TransactionsPage() {
     setEditing(null)
   }
 
-  const handleFileSelect = (e) => { const f = e.target.files?.[0]; if (!f) return; setSelectedFile(f); setUploadStatus('idle'); setUploadResult(null) }
+  const handleFileSelect = (e) => { const f = e.target.files?.[0]; if (!f) return; setSelectedFile(f); setUploadStatus('idle'); setUploadResult(null); setUploadError('') }
   const handleUploadClick = () => { fileInputRef.current?.click() }
   const handleImportFile = async () => { 
     if (!selectedFile) return; 
     setUploadStatus('loading'); 
     setUploadResult(null); 
+    setUploadError('')
     
     const formData = new FormData()
-    formData.append('user_id', '1')
+    formData.append('user_id', String(selectedUserId))
     formData.append('file', selectedFile)
 
-    const res = await uploadTransactions(formData);
-    setUploadStatus('success'); 
-    setUploadResult({ fileName: selectedFile.name, ...res.data });
-    loadData(); // refresh table
+    try {
+      const res = await uploadTransactions(formData);
+      setUploadStatus('success'); 
+      setUploadResult({ fileName: selectedFile.name, ...res.data });
+      loadData();
+    } catch (error) {
+      setUploadStatus('error')
+      setUploadError(error.message)
+    }
   }
-  const handleClearFile = () => { setSelectedFile(null); setUploadStatus('idle'); setUploadResult(null); if (fileInputRef.current) fileInputRef.current.value = '' }
+  const handleClearFile = () => { setSelectedFile(null); setUploadStatus('idle'); setUploadResult(null); setUploadError(''); if (fileInputRef.current) fileInputRef.current.value = '' }
 
   return (
     <div>
@@ -162,7 +152,7 @@ export default function TransactionsPage() {
         <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="glass-card overflow-hidden rounded-3xl">
           <div className="flex items-center gap-3 border-b border-[#1B2A24]/60 px-6 py-5">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#00FF66] to-[#16C784] text-[#041008]"><Plus size={22} /></div>
-            <div><h3 className="text-lg font-bold text-white">Manuel İşlem Ekle</h3><p className="text-sm text-[#8A968F]">Açıklama alanına göre kategori otomatik algılanır.</p></div>
+            <div><h3 className="text-lg font-bold text-white">Manuel İşlem Ekle</h3><p className="text-sm text-[#8A968F]">Kategori algılama backend tarafından yapılır.</p></div>
           </div>
           <div className="p-6">
             <form onSubmit={handleSubmit} className="grid gap-4">
@@ -228,6 +218,12 @@ export default function TransactionsPage() {
                   </div>
                 </div>
               </motion.div>
+            )}
+            {uploadStatus === 'error' && (
+              <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-4"><XCircle size={18} className="mt-0.5 shrink-0 text-red-400" /><p className="text-sm leading-6 text-[#B7C2BC]">{uploadError}</p></div>
+            )}
+            {uploadResult?.transactions?.length > 0 && (
+              <UploadTransactionsTable transactions={uploadResult.transactions} />
             )}
             <div className="mt-5 rounded-2xl border border-[#1B2A24]/60 bg-[#050807]/40 p-4">
               <div className="mb-3 flex items-center gap-2"><Sparkles size={14} className="text-[#00FF66]" /><p className="text-sm font-bold text-[#00FF66]">Beklenen format</p></div>
@@ -297,9 +293,9 @@ export default function TransactionsPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[950px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[1180px] border-collapse text-left text-sm">
               <thead className="bg-[#050807]/60 text-xs uppercase tracking-wider text-[#8A968F]">
-                <tr><th className="px-5 py-4">Tarih</th><th className="px-5 py-4">Açıklama</th><th className="px-5 py-4">Tutar</th><th className="px-5 py-4">Tip</th><th className="px-5 py-4">Kategori</th><th className="px-5 py-4">Alt Kategori</th><th className="px-5 py-4">Kaynak</th><th className="px-5 py-4 w-12"></th></tr>
+                <tr><th className="px-5 py-4">Tarih</th><th className="px-5 py-4">Açıklama</th><th className="px-5 py-4">Tutar</th><th className="px-5 py-4">Tip</th><th className="px-5 py-4">Kategori</th><th className="px-5 py-4">Alt Kategori</th><th className="px-5 py-4">Kaynak</th><th className="px-5 py-4">Not</th><th className="px-5 py-4">Oluşturulma</th><th className="px-5 py-4 w-12"></th></tr>
               </thead>
               <tbody>
                 <AnimatePresence>
@@ -312,6 +308,8 @@ export default function TransactionsPage() {
                       <td className="px-5 py-4"><Badge>{item.category}</Badge></td>
                       <td className="px-5 py-4"><span className="text-xs text-[#8A968F]">{item.sub_category}</span></td>
                       <td className="px-5 py-4"><span className="rounded-lg bg-[#0B1110] border border-[#1B2A24]/40 px-2 py-1 text-xs font-semibold uppercase text-[#8A968F]">{item.source}</span></td>
+                      <td className="px-5 py-4 max-w-[220px] text-xs leading-5 text-[#8A968F]">{item.note || '-'}</td>
+                      <td className="px-5 py-4 text-xs text-[#8A968F]">{formatDateTime(item.created_at)}</td>
                       <td className="px-5 py-4">
                         <div className="flex gap-2">
                           <button onClick={() => setEditing(item)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-[#8A968F] transition-all hover:border-[#00FF66]/30 hover:bg-[#00FF66]/10 hover:text-[#00FF66]"><Pencil size={15} /></button>
@@ -415,6 +413,58 @@ function UploadMetric({ label, value, danger }) {
   )
 }
 
+function UploadTransactionsTable({ transactions }) {
+  return (
+    <div className="mt-5 overflow-hidden rounded-2xl border border-[#1B2A24]/60 bg-[#050807]/40">
+      <div className="border-b border-[#1B2A24]/60 px-4 py-3">
+        <p className="text-sm font-bold text-white">Yüklenen İşlemler</p>
+        <p className="mt-1 text-xs text-[#8A968F]">Backend tarafından eklenen ve kategorilendirilen kayıtlar.</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[920px] text-left text-xs">
+          <thead className="bg-[#07100D] uppercase tracking-wider text-[#8A968F]">
+            <tr>
+              <th className="px-3 py-2.5">Tarih</th>
+              <th className="px-3 py-2.5">Açıklama</th>
+              <th className="px-3 py-2.5">Tutar</th>
+              <th className="px-3 py-2.5">Tip</th>
+              <th className="px-3 py-2.5">Kategori</th>
+              <th className="px-3 py-2.5">Alt Kategori</th>
+              <th className="px-3 py-2.5">Kaynak</th>
+              <th className="px-3 py-2.5">Not</th>
+            </tr>
+          </thead>
+          <tbody>
+            {transactions.map((item) => (
+              <tr key={item.id || `${item.date}-${item.description}-${item.amount}`} className="border-t border-[#1B2A24]/60 text-[#B7C2BC]">
+                <td className="px-3 py-2.5">{formatDate(item.date)}</td>
+                <td className="px-3 py-2.5 font-bold text-white">{item.description}</td>
+                <td className={`px-3 py-2.5 font-bold ${item.type === 'income' ? 'text-[#00FF66]' : 'text-red-400'}`}>{formatCurrency(item.amount)}</td>
+                <td className="px-3 py-2.5">{item.type}</td>
+                <td className="px-3 py-2.5">{item.category || '-'}</td>
+                <td className="px-3 py-2.5">{item.sub_category || '-'}</td>
+                <td className="px-3 py-2.5">{item.source || '-'}</td>
+                <td className="px-3 py-2.5">{item.note || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 function Badge({ children }) {
   return <span className="rounded-lg border border-[#00FF66]/20 bg-[#00FF66]/8 px-2.5 py-1 text-xs font-bold text-[#00FF66]">{children}</span>
+}
+
+function formatDateTime(value) {
+  if (!value) return '-'
+  return new Intl.DateTimeFormat('tr-TR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
 }

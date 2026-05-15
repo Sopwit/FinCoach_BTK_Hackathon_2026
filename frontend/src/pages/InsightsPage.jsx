@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   BrainCircuit,
@@ -22,27 +22,27 @@ import {
   getRecurringPayments,
 } from '../services/client'
 import {
-  DEFAULT_MONTH,
   DEFAULT_PREVIOUS_MONTH,
-  DEFAULT_USER_ID,
 } from '../services/config'
+import { useDemo } from '../hooks/useDemo'
 import { formatCurrency } from '../utils/formatCurrency'
 
 export default function InsightsPage() {
   const [monthlyComparison, setMonthlyComparison] = useState([])
   const [recurringPayments, setRecurringPayments] = useState([])
-  const [habits, setHabits] = useState([])
+  const [habits, setHabits] = useState({ frequent_sub_categories: [], frequent_descriptions: [] })
   const [healthScore, setHealthScore] = useState(null)
   const [aiAdvice, setAiAdvice] = useState(null)
   const [loading, setLoading] = useState(true)
   const [aiLoading, setAiLoading] = useState(false)
+  const { selectedMonth, selectedUserId } = useDemo()
 
-  const loadInsightsData = async () => {
+  const loadInsightsData = useCallback(async () => {
     setLoading(true)
     const params = {
-      user_id: DEFAULT_USER_ID,
-      month: DEFAULT_MONTH,
-      current_month: DEFAULT_MONTH,
+      user_id: selectedUserId,
+      month: selectedMonth,
+      current_month: selectedMonth,
       previous_month: DEFAULT_PREVIOUS_MONTH,
     }
 
@@ -60,23 +60,26 @@ export default function InsightsPage() {
     setHealthScore(healthRes.data)
     setAiAdvice(aiRes.data)
     setLoading(false)
-  }
+  }, [selectedMonth, selectedUserId])
 
   useEffect(() => {
     const timer = window.setTimeout(loadInsightsData, 0)
     return () => window.clearTimeout(timer)
-  }, [])
+  }, [loadInsightsData])
 
   const refreshAiAdvice = async () => {
     setAiLoading(true)
-    const response = await getAiAdvice({ user_id: DEFAULT_USER_ID, month: DEFAULT_MONTH })
+    const response = await getAiAdvice({ user_id: selectedUserId, month: selectedMonth })
     setAiAdvice(response.data)
     setAiLoading(false)
   }
 
   if (loading) return <InsightsLoading />
 
-  if (monthlyComparison.length === 0 && recurringPayments.length === 0 && habits.length === 0) {
+  const frequentSubCategories = habits.frequent_sub_categories || []
+  const frequentDescriptions = habits.frequent_descriptions || []
+
+  if (monthlyComparison.length === 0 && recurringPayments.length === 0 && frequentSubCategories.length === 0 && frequentDescriptions.length === 0) {
     return <InsightsEmptyState />
   }
 
@@ -106,7 +109,7 @@ export default function InsightsPage() {
         />
         <SummaryCard
           icon={Coffee} iconColor="text-[#16C784]" iconBg="bg-[#16C784]/10"
-          title="Sık Alışkanlık" value={`${habits.length} alan`}
+          title="Sık Alışkanlık" value={`${frequentSubCategories.length + frequentDescriptions.length} alan`}
           text="Ay içinde tekrar eden harcama davranışı bulundu."
         />
       </div>
@@ -143,9 +146,10 @@ export default function InsightsPage() {
           <div className="mt-6 space-y-3">
             {recurringPayments.map((item) => (
               <PaymentCard
-                key={item.name}
-                title={item.name}
-                price={formatCurrency(item.amount)}
+                key={`${item.description || item.name}-${item.category}-${item.sub_category}`}
+                item={item}
+                title={item.description || item.name}
+                price={formatCurrency(item.average_amount ?? item.amount)}
                 type={item.type}
                 frequency={item.frequency}
               />
@@ -154,7 +158,7 @@ export default function InsightsPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-bold text-[#8A968F]">Toplam aylık abonelik</span>
                 <span className="text-lg font-black text-[#00FF66]">
-                  {formatCurrency(recurringPayments.reduce((s, i) => s + i.amount, 0))}
+                  {formatCurrency(recurringPayments.reduce((s, i) => s + (i.average_amount ?? i.amount), 0))}
                 </span>
               </div>
             </div>
@@ -164,15 +168,8 @@ export default function InsightsPage() {
         {/* Habits */}
         <Panel delay={0.18} icon={Coffee} title="Sık Harcama Alışkanlıkları" subtitle="Abonelik olmayan tekrar eden davranışlar">
           <div className="mt-6 space-y-3">
-            {habits.map((item) => (
-              <HabitCard
-                key={item.name}
-                title={item.name}
-                count={item.count}
-                total={formatCurrency(item.total)}
-                category={item.category}
-              />
-            ))}
+            <HabitGroup title="Sık Alt Kategoriler" items={frequentSubCategories} emptyText="Sık tekrar eden alt kategori yok." />
+            <HabitGroup title="Sık Açıklamalar" items={frequentDescriptions} emptyText="Sık tekrar eden açıklama yok." />
           </div>
         </Panel>
 
@@ -409,9 +406,10 @@ function InsightRow({ label, oldValue, newValue, change }) {
   )
 }
 
-function PaymentCard({ title, price, type, frequency }) {
+function PaymentCard({ item, title, price, type, frequency }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-[#1B2A24]/40 bg-[#050807]/40 p-4 transition-all duration-200 hover:border-[#1B2A24]">
+    <div className="rounded-xl border border-[#1B2A24]/40 bg-[#050807]/40 p-4 transition-all duration-200 hover:border-[#1B2A24]">
+      <div className="flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#00FF66]/10 text-[#00FF66]">
           <Repeat size={16} />
@@ -422,6 +420,35 @@ function PaymentCard({ title, price, type, frequency }) {
         </div>
       </div>
       <p className="font-black text-[#00FF66]">{price}</p>
+      </div>
+      <div className="mt-3 grid gap-2 text-xs text-[#8A968F] sm:grid-cols-3">
+        <span>Kategori: <b className="text-[#B7C2BC]">{item.category || '-'}</b></span>
+        <span>Alt kategori: <b className="text-[#B7C2BC]">{item.sub_category || '-'}</b></span>
+        <span>Adet: <b className="text-[#B7C2BC]">{item.count ?? '-'}</b></span>
+      </div>
+    </div>
+  )
+}
+
+function HabitGroup({ title, items, emptyText }) {
+  return (
+    <div>
+      <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#8A968F]">{title}</p>
+      {items.length ? (
+        <div className="space-y-3">
+          {items.map((item) => (
+            <HabitCard
+              key={item.name}
+              title={item.name}
+              count={item.count}
+              total={formatCurrency(item.total)}
+              category={item.category}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-xl border border-[#1B2A24]/40 bg-[#050807]/40 p-4 text-sm text-[#8A968F]">{emptyText}</p>
+      )}
     </div>
   )
 }

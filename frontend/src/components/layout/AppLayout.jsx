@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
+import Chatbot from '../chat/Chatbot'
 
 export default function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -50,6 +51,7 @@ export default function AppLayout() {
               <Outlet />
             </div>
           </motion.div>
+          <Chatbot />
         </main>
       </div>
     </div>

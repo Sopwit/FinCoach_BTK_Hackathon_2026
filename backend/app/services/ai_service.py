@@ -74,6 +74,142 @@ def generate_ai_advice(analysis_data: dict) -> dict:
             "text": fallback_advice(analysis_data)
         }
 
+def build_chat_prompt(message: str, current_page: str | None, context: dict) -> str:
+    return f"""
+Sen FinCoach uygulamasının bağlam farkındalığı olan finansal harcama analizi asistanısın.
+
+Kesin kurallar:
+- Kullanıcıya özel sorularda sadece sağlanan context içindeki verileri kullan.
+- Context dışında sayı, işlem, kategori, bütçe, alışkanlık veya abonelik uydurma.
+- Yatırım tavsiyesi verme. Hisse, kripto, fon, altın, döviz veya al-sat önerisi yapma.
+- Harcama, bütçe, alışkanlık, tekrar eden ödeme ve dashboard verilerini açıkla.
+- Context yetersizse hangi verinin eksik olduğunu söyle.
+- Kısa, net, demo için anlaşılır Türkçe cevap ver.
+- En fazla 2 kısa paragraf ve gerekiyorsa 3 madde kullan.
+
+Mevcut sayfa:
+{current_page or "-"}
+
+Kullanıcı mesajı:
+{message}
+
+Uygulama context verisi:
+{json.dumps(context, ensure_ascii=False, indent=2, default=str)}
+
+Bu mesaja, yalnızca yukarıdaki context'e dayanarak cevap ver.
+"""
+
+
+def summarize_chat_context(context: dict) -> str:
+    dashboard = context.get("dashboard") or {}
+    transactions = context.get("transactions") or []
+    habits = context.get("habits") or {}
+    recurring = context.get("recurring_payments") or []
+    budgets = context.get("budgets") or {}
+    selected_month = context.get("selected_month")
+    selected_user = context.get("selected_user") or {}
+
+    parts = []
+
+    if selected_user:
+        parts.append(f"kullanıcı: {selected_user.get('name') or selected_user.get('id')}")
+    if selected_month:
+        parts.append(f"ay: {selected_month}")
+    if dashboard:
+        parts.append("dashboard")
+    if transactions:
+        parts.append(f"{len(transactions)} işlem")
+    if habits:
+        sub_count = len(habits.get("frequent_sub_categories") or [])
+        desc_count = len(habits.get("frequent_descriptions") or [])
+        parts.append(f"alışkanlıklar: {sub_count} alt kategori, {desc_count} açıklama")
+    if recurring:
+        parts.append(f"{len(recurring)} tekrar eden ödeme")
+    if budgets:
+        raw_count = len(budgets.get("raw") or []) if isinstance(budgets, dict) else len(budgets)
+        parts.append(f"{raw_count} bütçe")
+
+    return ", ".join(parts) if parts else "Context verisi boş veya çok sınırlı."
+
+
+def fallback_chat_answer(message: str, context: dict) -> str:
+    dashboard = context.get("dashboard") or {}
+    summary = dashboard.get("summary") or {}
+    transactions = context.get("transactions") or []
+    recurring = context.get("recurring_payments") or []
+    habits = context.get("habits") or {}
+    budgets = context.get("budgets") or {}
+
+    if not any([summary, transactions, recurring, habits, budgets]):
+        return (
+            "Gemini yanıtı alınamadı ve mevcut context finansal yorum yapmak için yeterli değil. "
+            "Dashboard özeti, işlem listesi, bütçe durumu veya alışkanlık verileri yüklendikten sonra daha net cevap verebilirim."
+        )
+
+    answer_parts = ["Gemini yanıtı alınamadı; mevcut uygulama context'i ile sınırlı kısa özet:"]
+
+    if summary:
+        answer_parts.append(
+            f"Toplam gelir {summary.get('total_income', 0)} TL, toplam gider {summary.get('total_expense', 0)} TL, "
+            f"kalan bütçe {summary.get('remaining_budget', 0)} TL görünüyor."
+        )
+
+    if summary.get("top_category"):
+        answer_parts.append(f"Dashboard'da öne çıkan kategori: {summary.get('top_category')}.")
+
+    if recurring:
+        names = ", ".join([(item.get("description") or item.get("name") or "-") for item in recurring[:3]])
+        answer_parts.append(f"Tekrar eden ödeme tarafında dikkat çeken kayıtlar: {names}.")
+
+    frequent_sub_categories = habits.get("frequent_sub_categories") or []
+    if frequent_sub_categories:
+        top_habit = frequent_sub_categories[0]
+        answer_parts.append(
+            f"Sık alt kategori: {top_habit.get('sub_category') or top_habit.get('name')} "
+            f"({top_habit.get('count', 0)} işlem)."
+        )
+
+    if "bütçe" in message.lower() and not budgets:
+        answer_parts.append("Bütçe sorusu için raw bütçe veya bütçe durum verisi context içinde eksik.")
+
+    return " ".join(answer_parts)
+
+
+def generate_chat_answer(message: str, current_page: str | None, context: dict) -> dict:
+    used_context_summary = summarize_chat_context(context)
+
+    if not GEMINI_API_KEY:
+        return {
+            "answer": fallback_chat_answer(message, context),
+            "used_context_summary": used_context_summary,
+            "warning": "GEMINI_API_KEY eksik; Gemini çağrısı yapılamadı."
+        }
+
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(build_chat_prompt(message, current_page, context))
+
+        if not response or not response.text:
+            return {
+                "answer": fallback_chat_answer(message, context),
+                "used_context_summary": used_context_summary,
+                "warning": "Gemini boş yanıt döndürdü; fallback yanıt kullanıldı."
+            }
+
+        return {
+            "answer": response.text.strip(),
+            "used_context_summary": used_context_summary,
+            "warning": None
+        }
+
+    except Exception as e:
+        return {
+            "answer": fallback_chat_answer(message, context),
+            "used_context_summary": used_context_summary,
+            "warning": f"Gemini isteği başarısız oldu: {str(e)}"
+        }
+
 def fallback_advice(analysis_data: dict) -> str:
     summary = analysis_data.get("summary", {})
     comparison = analysis_data.get("monthly_comparison", {}).get("comparison", [])

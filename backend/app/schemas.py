@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, EmailStr, field_validator
 
@@ -219,3 +219,16 @@ class BudgetResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ChatRequest(BaseModel):
+    user_id: int
+    message: str
+    current_page: Optional[str] = None
+    context: dict[str, Any] = {}
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    used_context_summary: str
+    warning: Optional[str] = None

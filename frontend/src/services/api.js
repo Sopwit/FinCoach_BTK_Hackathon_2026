@@ -65,7 +65,10 @@ function normalizePeriod(params = {}) {
 
 async function ensureUserId(preferredUserId) {
   const sessionUserId = getSessionUserId()
-  if (preferredUserId && preferredUserId !== 1) return preferredUserId
+  if (preferredUserId) {
+    setSessionUserId(preferredUserId)
+    return preferredUserId
+  }
   if (sessionUserId) return sessionUserId
 
   const usersResponse = await api.get('/users/')
@@ -138,19 +141,31 @@ function normalizeRecurringPayments(data) {
     ...item,
     name: item.name || item.description || item.category || 'Tekrar eden odeme',
     amount: Number(item.amount ?? item.average_amount ?? 0),
+    average_amount: Number(item.average_amount ?? item.amount ?? 0),
+    count: Number(item.count ?? 1),
     frequency: item.frequency || `${item.count || 1} kez`,
   }))
 }
 
-function normalizeHabits(data) {
-  const items = Array.isArray(data) ? data : data?.frequent_sub_categories || []
-
-  return items.map((item) => ({
+function normalizeHabitItem(item) {
+  return {
     ...item,
     name: item.name || item.sub_category || item.description || 'Harcama aliskanligi',
     total: Number(item.total || 0),
-    category: item.category || item.sub_category || 'Diger',
-  }))
+    count: Number(item.count || 0),
+    category: item.category || item.sub_category || item.description || 'Diger',
+  }
+}
+
+function normalizeHabits(data) {
+  const subCategories = Array.isArray(data) ? data : data?.frequent_sub_categories || []
+  const descriptions = Array.isArray(data) ? [] : data?.frequent_descriptions || []
+
+  return {
+    ...data,
+    frequent_sub_categories: subCategories.map(normalizeHabitItem),
+    frequent_descriptions: descriptions.map(normalizeHabitItem),
+  }
 }
 
 function normalizeAiAdvice(data) {
@@ -176,13 +191,16 @@ function normalizeUploadResult(data) {
     totalRows: (data.inserted_count || 0) + (data.skipped_count || 0),
     insertedRows: data.inserted_count || 0,
     failedRows: data.skipped_count || 0,
+    transactions: data.transactions || [],
   }
 }
 
 function normalizeDashboard(data) {
   const categoryDistribution = normalizeCategories(data.charts?.category_distribution || data.categories)
   const monthlyComparison = normalizeMonthlyComparison(data.charts?.monthly_comparison || data.monthly_comparison)
-  const spendingHabits = normalizeHabits(data.charts?.spending_habits || data.spending_habits)
+  const spendingHabits = normalizeHabits(data.spending_habits || {
+    frequent_sub_categories: data.charts?.spending_habits || [],
+  })
 
   return {
     ...data,
@@ -196,7 +214,7 @@ function normalizeDashboard(data) {
       ...data.charts,
       category_distribution: categoryDistribution,
       monthly_comparison: monthlyComparison,
-      spending_habits: spendingHabits,
+      spending_habits: spendingHabits.frequent_sub_categories,
       budget_usage: data.charts?.budget_usage || data.budget_status || [],
     },
     advice: data.advice ? normalizeAiAdvice(data.advice) : null,
@@ -321,6 +339,10 @@ export const getHealthScore = async (params) => {
 export const getAiAdvice = async (params) => {
   const result = await api.post('/ai/advice', null, { params: await withBackendParams(params) })
   return response(normalizeAiAdvice(result.data))
+}
+
+export const sendChatMessage = async (payload) => {
+  return api.post('/chat', payload)
 }
 
 export const loadStudentDemoData = async (payload = {}) => {

@@ -5,6 +5,7 @@ import TransactionsPage from '../pages/TransactionsPage'
 import InsightsPage from '../pages/InsightsPage'
 import BudgetsPage from '../pages/BudgetsPage'
 import AppLayout from '../components/layout/AppLayout'
+import { DemoProvider } from '../context/DemoContext'
 
 export default function AppRoutes() {
   return (
@@ -13,7 +14,7 @@ export default function AppRoutes() {
 
       <Route path="/login" element={<AuthPage />} />
 
-      <Route element={<AppLayout />}>
+      <Route element={<DemoProvider><AppLayout /></DemoProvider>}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/transactions" element={<TransactionsPage />} />
         <Route path="/budgets" element={<BudgetsPage />} />

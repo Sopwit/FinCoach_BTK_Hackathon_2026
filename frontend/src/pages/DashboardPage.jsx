@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Activity,
@@ -24,7 +24,7 @@ import {
   YAxis,
 } from 'recharts'
 import { getAiAdvice, getDashboard } from '../services/client'
-import { DEFAULT_MONTH, DEFAULT_USER_ID } from '../services/config'
+import { useDemo } from '../hooks/useDemo'
 import { formatCurrency } from '../utils/formatCurrency'
 
 const CARD_META = {
@@ -40,29 +40,30 @@ export default function DashboardPage() {
   const [aiAdvice, setAiAdvice] = useState(null)
   const [loading, setLoading] = useState(true)
   const [aiLoading, setAiLoading] = useState(false)
+  const { selectedMonth, selectedUserId } = useDemo()
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setLoading(true)
     const response = await getDashboard({
-      user_id: DEFAULT_USER_ID,
-      month: DEFAULT_MONTH,
+      user_id: selectedUserId,
+      month: selectedMonth,
       include_ai: true,
     })
     setDashboard(response.data)
     setAiAdvice(response.data.advice)
     setLoading(false)
-  }
+  }, [selectedMonth, selectedUserId])
 
   useEffect(() => {
     const timer = window.setTimeout(loadDashboardData, 0)
     return () => window.clearTimeout(timer)
-  }, [])
+  }, [loadDashboardData])
 
   const refreshAiAdvice = async () => {
     setAiLoading(true)
     const response = await getAiAdvice({
-      user_id: DEFAULT_USER_ID,
-      month: DEFAULT_MONTH,
+      user_id: selectedUserId,
+      month: selectedMonth,
     })
     setAiAdvice(response.data)
     setAiLoading(false)
@@ -75,14 +76,14 @@ export default function DashboardPage() {
     return <DashboardEmptyState />
   }
 
-  const stats = (dashboard?.cards || []).slice(0, 4).map((card) => {
+  const stats = (dashboard?.cards || []).map((card) => {
     const meta = CARD_META[card.key] || CARD_META.top_category
     const isMoney = card.unit === 'TL'
     const suffix = card.unit && card.unit !== 'TL' ? card.unit : ''
 
     return {
       title: card.title,
-      value: isMoney ? formatCurrency(card.value) : `${card.value}${suffix}`,
+      value: isMoney ? formatCurrency(card.value) : `${card.value}${suffix ? ` ${suffix}` : ''}`,
       trend: card.status || 'Canlı',
       ...meta,
     }
@@ -92,7 +93,7 @@ export default function DashboardPage() {
     <div>
       <PageHeader />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {stats.map((item, index) => (
           <StatCard key={item.title} item={item} index={index} />
         ))}
@@ -107,7 +108,9 @@ export default function DashboardPage() {
         onRefreshAi={refreshAiAdvice}
       />
 
-      <BudgetAlerts budgets={dashboard?.charts?.budget_usage || dashboard?.budget_status || []} />
+      <DashboardCategories categories={dashboard?.categories || []} />
+
+      <BudgetAlerts budgets={dashboard?.budget_status || dashboard?.charts?.budget_usage || []} />
     </div>
   )
 }
@@ -233,7 +236,7 @@ function DashboardSignals({ dashboard }) {
 function BackendCharts({ dashboard, aiAdvice, aiLoading, onRefreshAi }) {
   const comparison = dashboard?.charts?.monthly_comparison || []
   const habits = dashboard?.charts?.spending_habits || []
-  const budgets = dashboard?.charts?.budget_usage || dashboard?.budget_status || []
+  const budgets = dashboard?.budget_status || dashboard?.charts?.budget_usage || []
 
   return (
     <div className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,0.95fr)]">
@@ -292,6 +295,30 @@ function BackendCharts({ dashboard, aiAdvice, aiLoading, onRefreshAi }) {
 
       <AiAdvicePanel aiAdvice={aiAdvice} aiLoading={aiLoading} onRefresh={onRefreshAi} />
     </div>
+  )
+}
+
+function DashboardCategories({ categories }) {
+  if (!categories.length) return null
+
+  return (
+    <section className="glass-card mt-8 overflow-hidden rounded-3xl">
+      <PanelHeader title="Kategori Dağılımı" subtitle="Dashboard categories alanından gelen harcama özeti." />
+      <div className="grid gap-3 p-6 md:grid-cols-2 xl:grid-cols-3">
+        {categories.map((item) => (
+          <div key={item.category} className="rounded-2xl border border-[#1B2A24]/50 bg-[#050807]/50 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-bold text-white">{item.category}</p>
+              <p className="font-black text-[#00FF66]">{formatCurrency(item.amount)}</p>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#1B2A24]/70">
+              <div className="h-full bg-[#00FF66]" style={{ width: `${Math.min(item.percent, 100)}%` }} />
+            </div>
+            <p className="mt-2 text-xs text-[#8A968F]">%{item.percent}</p>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 
