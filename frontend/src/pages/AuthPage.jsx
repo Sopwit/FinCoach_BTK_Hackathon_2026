@@ -8,8 +8,8 @@ import {
   CheckCircle2,
   Loader2,
   LockKeyhole,
+  Repeat,
   ShieldCheck,
-  Sparkles,
   TrendingUp,
   Wallet,
 } from 'lucide-react'
@@ -42,8 +42,8 @@ export default function AuthPage() {
 
     setDemoMessage(
       response.data.transactions_count > 0
-        ? `${response.data.transactions_count} işlem içeren öğrenci demo verisi hazırlandı.`
-        : 'Demo verisi zaten hazır.',
+        ? `${response.data.transactions_count} işlem içeren örnek finans profili hazırlandı.`
+        : 'Örnek finans profili zaten hazır.',
     )
 
     setTimeout(() => {
@@ -75,7 +75,7 @@ export default function AuthPage() {
             transition={{ delay: 0.1 }}
             className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-[#1B2A24] bg-[#0B1110]/80 px-5 py-2.5 text-sm font-bold text-[#00FF66] backdrop-blur-lg"
           >
-            <Sparkles size={16} className="animate-pulse" />
+            <BrainCircuit size={16} />
             AI Destekli Finans Koçu
           </motion.div>
 
@@ -95,7 +95,7 @@ export default function AuthPage() {
           >
             Gelir ve giderlerini analiz eder, harcama alışkanlıklarını ortaya
             çıkarır, önceki ayla karşılaştırır ve{' '}
-            <span className="text-[#00FF66] font-bold">Gemini destekli</span> kişisel bütçe
+            <span className="text-[#00FF66] font-bold">AI destekli</span> kişisel bütçe
             önerileri sunar.
           </motion.p>
 
@@ -112,13 +112,13 @@ export default function AuthPage() {
             />
             <FeatureCard
               icon={BrainCircuit}
-              title="Gemini Önerisi"
+              title="Akıllı Öneriler"
               text="Kişisel, uygulanabilir aksiyonlar."
               delay={0.35}
             />
             <FeatureCard
               icon={ShieldCheck}
-              title="Güvenli MVP"
+              title="Güvenli Kullanım"
               text="Banka bağlantısı olmadan çalışır."
               delay={0.4}
             />
@@ -134,12 +134,12 @@ export default function AuthPage() {
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp size={14} className="text-[#00FF66]" />
                 <p className="text-sm font-bold text-[#00FF66]">
-                  Demo Senaryosu
+                  Örnek Senaryo
                 </p>
               </div>
               <p className="text-sm leading-6 text-[#8A968F]">
                 Öğrenci gelir-giderleri, dışarıdan yemek artışı,
-                Spotify/Netflix abonelikleri, önceki ay karşılaştırması ve Gemini
+                Spotify/Netflix abonelikleri, önceki ay karşılaştırması ve kişisel
                 tasarruf önerileri tek akışta gösterilir.
               </p>
             </div>
@@ -166,8 +166,8 @@ export default function AuthPage() {
                 Hesabına eriş
               </h2>
               <p className="mt-2.5 text-sm leading-6 text-[#8A968F]">
-                Demo profiliyle hızlıca başlayabilir veya kullanıcı bilgilerini
-                girerek arayüz akışını test edebilirsin.
+                Örnek finans profiliyle hızlıca başlayabilir veya kendi kullanıcı
+                bilgilerinle devam edebilirsin.
               </p>
             </div>
 
@@ -211,7 +211,7 @@ export default function AuthPage() {
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#1B2A24] to-transparent" />
             </div>
 
-            {/* Demo button */}
+            {/* Sample profile button */}
             <button
               type="button"
               onClick={handleDemoStart}
@@ -221,11 +221,11 @@ export default function AuthPage() {
               {loadingDemo ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  Demo verisi hazırlanıyor
+                  Örnek profil hazırlanıyor
                 </>
               ) : (
                 <>
-                  Demo Öğrenci Profiliyle Dene
+                  Örnek Öğrenci Profiliyle Başla
                   <ArrowRight size={18} />
                 </>
               )}
@@ -245,7 +245,7 @@ export default function AuthPage() {
                       className="mt-0.5 shrink-0 text-[#00FF66]"
                     />
                     <div>
-                      <p className="font-bold text-white">Demo hazır</p>
+                      <p className="font-bold text-white">Örnek profil hazır</p>
                       <p className="mt-1 text-sm leading-6 text-[#B7C2BC]">
                         {demoMessage}
                       </p>
@@ -258,7 +258,7 @@ export default function AuthPage() {
             {/* Mini metrics */}
             <div className="mt-7 grid gap-3 sm:grid-cols-3">
               <MiniMetric icon={BarChart3} value="2 ay" label="geçmiş veri" />
-              <MiniMetric icon={Sparkles} value="3" label="abonelik" />
+              <MiniMetric icon={Repeat} value="3" label="abonelik" />
               <MiniMetric icon={BrainCircuit} value="AI" label="öneri motoru" />
             </div>
           </div>

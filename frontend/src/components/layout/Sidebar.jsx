@@ -1,11 +1,11 @@
-import { BarChart3, LayoutDashboard, LogOut, PiggyBank, Sparkles, WalletCards, X } from 'lucide-react'
+import { ChartNoAxesCombined, CircleDollarSign, LayoutDashboard, LogOut, PiggyBank, ReceiptText, X } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 
 const navItems = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Harcama Yönetimi', path: '/transactions', icon: WalletCards },
+  { label: 'Genel Bakış', path: '/dashboard', icon: LayoutDashboard },
+  { label: 'Harcama Yönetimi', path: '/transactions', icon: ReceiptText },
   { label: 'Bütçeler', path: '/budgets', icon: PiggyBank },
-  { label: 'İçgörüler', path: '/insights', icon: BarChart3 },
+  { label: 'Finansal Detaylar', path: '/insights', icon: ChartNoAxesCombined },
 ]
 
 export default function Sidebar({ mobile = false, onClose }) {
@@ -33,14 +33,14 @@ export default function Sidebar({ mobile = false, onClose }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#00FF66] to-[#16C784] text-[#041008] shadow-[0_0_20px_rgba(0,255,102,0.3)]">
-              <Sparkles size={24} />
+              <CircleDollarSign size={25} />
             </div>
             <div>
               <div className="text-[26px] font-black tracking-tight text-white leading-none">
                 Fin<span className="text-[#00FF66] drop-shadow-[0_0_8px_rgba(0,255,102,0.5)]">Coach</span>
               </div>
               <p className="text-xs font-semibold text-[#8A968F] tracking-wide uppercase mt-1">
-                AI Finance
+                Akıllı Finans
               </p>
             </div>
           </div>
@@ -95,10 +95,10 @@ export default function Sidebar({ mobile = false, onClose }) {
         <div className="absolute -top-10 -right-10 w-24 h-24 bg-[#00FF66]/10 rounded-full blur-2xl" />
         <div className="flex items-center gap-2 mb-2">
           <div className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse" />
-          <p className="text-xs font-bold uppercase tracking-widest text-[#00FF66]">MVP Aktif</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-[#00FF66]">Sistem Hazır</p>
         </div>
         <p className="text-[13px] leading-relaxed text-[#B7C2BC]">
-          Demo verisi, analiz ekranları ve bütçe yönetimi hazır.
+          Harcama analizi, bütçe takibi ve kişisel öneriler hazır.
         </p>
       </div>
 

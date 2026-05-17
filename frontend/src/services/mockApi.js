@@ -20,7 +20,7 @@ function getDB() {
     // Eski veritabanı yapısında 'users' yoksa ekleyelim
     if (!db.users) {
       db.users = [
-        { id: 1, name: 'Demo Öğrenci', email: 'demo@gmail.com', password: '123', monthly_income: 5000, created_at: new Date().toISOString() }
+        { id: 1, name: 'Örnek Öğrenci', email: 'demo@gmail.com', password: '123', monthly_income: 5000, created_at: new Date().toISOString() }
       ]
       localStorage.setItem(DB_KEY, JSON.stringify(db))
     }
@@ -28,7 +28,7 @@ function getDB() {
   }
   const emptyDb = {
     users: [
-      { id: 1, name: 'Demo Öğrenci', email: 'demo@gmail.com', password: '123', monthly_income: 5000, created_at: new Date().toISOString() }
+      { id: 1, name: 'Örnek Öğrenci', email: 'demo@gmail.com', password: '123', monthly_income: 5000, created_at: new Date().toISOString() }
     ],
     transactions: [],
     budgets: [],
@@ -167,29 +167,6 @@ function hasTransactions() {
   return db.transactions.some(t => t.user_id === userId)
 }
 
-export async function getSummary() {
-  await wait()
-  if (!hasTransactions()) {
-    return {
-      data: {
-        total_income: 0,
-        total_expense: 0,
-        remaining_budget: 0,
-        saving_potential: 0,
-        top_category: '-',
-        risky_increase: { category: '-', percent: 0 },
-      },
-    }
-  }
-  return { data: mockSummary }
-}
-
-export async function getCategories() {
-  await wait()
-  if (!hasTransactions()) return { data: [] }
-  return { data: mockCategories }
-}
-
 export async function getDashboard() {
   await wait()
   if (!hasTransactions()) {
@@ -231,7 +208,7 @@ export async function getDashboard() {
         budget_usage: [],
       },
       alerts: [],
-      quick_insights: ['Demo verisi yüklendi.'],
+      quick_insights: ['Örnek veriler yüklendi.'],
       advice: mockAiAdvice,
     },
   }
@@ -279,8 +256,8 @@ export async function sendChatMessage(payload) {
   await wait(500)
   return {
     data: {
-      answer: `Demo yanıtı: "${payload.message}" sorusunu mevcut uygulama context'i ile değerlendirdim. Yatırım tavsiyesi vermeden harcama ve bütçe verilerine odaklanıyorum.`,
-      used_context_summary: 'mock dashboard, işlemler, bütçeler ve alışkanlıklar',
+      answer: `"${payload.message}" sorusunu mevcut finansal verilerine göre değerlendirdim. Yatırım tavsiyesi vermeden harcama ve bütçe verilerine odaklanıyorum.`,
+      used_context_summary: 'finansal özet, işlemler, bütçeler ve alışkanlıklar',
       warning: null,
     },
   }
@@ -301,7 +278,7 @@ export async function loadStudentDemoData() {
   return {
     data: {
       transactions_count: mockTransactions.length,
-      message: 'Öğrenci demo verisi yüklendi.',
+      message: 'Örnek finans verileri yüklendi.',
     },
   }
 }
@@ -313,7 +290,7 @@ export async function clearStudentDemoData() {
   db.transactions = db.transactions.filter(t => !(t.user_id === userId && t.source === 'demo'))
   db.budgets = db.budgets.filter(b => b.user_id !== userId)
   setDB(db)
-  return { data: { message: 'Demo verisi temizlendi.' } }
+  return { data: { message: 'Örnek veriler temizlendi.' } }
 }
 
 export async function getBudgets() {
@@ -373,6 +350,29 @@ export async function deleteTransaction(transactionId) {
   }
 }
 
+export async function deleteTransactions(params = {}) {
+  await wait()
+  const db = getDB()
+  const userId = getCurrentUserId() || 1
+  const selectedMonth = typeof params.month === 'string' && params.month.includes('-') ? params.month : null
+  const isTargetTransaction = (tx) => {
+    if (tx.user_id !== userId) return false
+    if (!selectedMonth) return true
+    return String(tx.date || '').startsWith(selectedMonth)
+  }
+  const deletedCount = db.transactions.filter(isTargetTransaction).length
+
+  db.transactions = db.transactions.filter((tx) => !isTargetTransaction(tx))
+  setDB(db)
+
+  return {
+    data: {
+      deleted_count: deletedCount,
+      message: 'İşlemler silindi.',
+    },
+  }
+}
+
 export async function updateTransaction(transactionId, payload) {
   await wait()
   const db = getDB()
@@ -413,7 +413,7 @@ export async function getHealthScore() {
     data: {
       score: 74,
       status: 'Dengeli',
-      message: 'Demo finansal sağlık skoru.',
+      message: 'Finansal sağlık skoru mevcut verilerinize göre hesaplandı.',
       metrics: {},
       reasons: [],
       positive_points: [],

@@ -1,5 +1,4 @@
 from typing import List, Optional
-from datetime import datetime
 
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
@@ -126,6 +125,33 @@ async def upload_transactions_file(
     "skipped_count": skipped_count,
     "transactions": created_transactions
     }
+
+
+@router.delete("/")
+def delete_transactions(
+    user_id: int = Query(...),
+    year: Optional[int] = Query(default=None),
+    month: Optional[int] = Query(default=None),
+    db: Session = Depends(get_db)
+):
+    user = crud.get_user(db=db, user_id=user_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    deleted_count = crud.delete_transactions(
+        db=db,
+        user_id=user_id,
+        year=year,
+        month=month
+    )
+
+    return {
+        "message": "Transactions deleted successfully",
+        "deleted_count": deleted_count
+    }
+
+
 @router.put("/{transaction_id}", response_model=schemas.TransactionResponse)
 def update_transaction(
     transaction_id: int,

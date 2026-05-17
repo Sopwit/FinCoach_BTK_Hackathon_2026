@@ -2,14 +2,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   BrainCircuit,
-  Coffee,
+  HandCoins,
+  ListChecks,
   Loader2,
   RefreshCw,
   Repeat,
   TrendingUp,
   ArrowUpRight,
   ArrowRight,
-  Zap,
   PlusCircle,
   PiggyBank,
 } from 'lucide-react'
@@ -88,10 +88,10 @@ export default function InsightsPage() {
   return (
     <div>
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <p className="text-sm font-bold uppercase tracking-widest text-[#00FF66]">İçgörüler</p>
-        <h2 className="mt-3 text-4xl font-black tracking-tight text-white">Finansal Dedektif</h2>
+        <p className="text-sm font-bold uppercase tracking-widest text-[#00FF66]">Finansal Detaylar</p>
+        <h2 className="mt-3 text-4xl font-black tracking-tight text-white">Harcama Analizi</h2>
         <p className="mt-3 max-w-3xl text-[#8A968F] leading-relaxed">
-          Harcama davranışlarını analiz et, tekrar eden ödemeleri gör ve Gemini tarafından önerilen aksiyonlarla bütçeni güçlendir.
+          Harcama davranışlarını analiz et, tekrar eden ödemeleri gör ve önerilen aksiyonlarla bütçeni güçlendir.
         </p>
       </motion.div>
 
@@ -108,7 +108,7 @@ export default function InsightsPage() {
           text="Abonelik ve düzenli ödeme olarak algılandı."
         />
         <SummaryCard
-          icon={Coffee} iconColor="text-[#16C784]" iconBg="bg-[#16C784]/10"
+          icon={ListChecks} iconColor="text-[#16C784]" iconBg="bg-[#16C784]/10"
           title="Sık Alışkanlık" value={`${frequentSubCategories.length + frequentDescriptions.length} alan`}
           text="Ay içinde tekrar eden harcama davranışı bulundu."
         />
@@ -165,19 +165,32 @@ export default function InsightsPage() {
           </div>
         </Panel>
 
-        {/* Habits */}
-        <Panel delay={0.18} icon={Coffee} title="Sık Harcama Alışkanlıkları" subtitle="Abonelik olmayan tekrar eden davranışlar">
-          <div className="mt-6 space-y-3">
-            <HabitGroup title="Sık Alt Kategoriler" items={frequentSubCategories} emptyText="Sık tekrar eden alt kategori yok." />
-            <HabitGroup title="Sık Açıklamalar" items={frequentDescriptions} emptyText="Sık tekrar eden açıklama yok." />
-          </div>
-        </Panel>
+        {(frequentSubCategories.length > 0 || frequentDescriptions.length > 0) && (
+          <Panel delay={0.18} icon={ListChecks} title="Sık Harcama Alışkanlıkları" subtitle="Abonelik olmayan tekrar eden davranışlar">
+            <div className="mt-6 space-y-3">
+              {frequentSubCategories.length > 0 && (
+                <HabitGroup
+                  title="Sık Alt Kategoriler"
+                  description="Aynı alt kategori ay içinde en az 2 kez harcandığında listelenir."
+                  items={frequentSubCategories}
+                />
+              )}
+              {frequentDescriptions.length > 0 && (
+                <HabitGroup
+                  title="Sık Açıklamalar"
+                  description="Aynı işlem açıklaması ay içinde en az 2 kez tekrarlandığında listelenir."
+                  items={frequentDescriptions}
+                />
+              )}
+            </div>
+          </Panel>
+        )}
 
-        {/* Gemini Savings Plan */}
+        {/* Savings Plan */}
         <Panel
           delay={0.24}
           icon={BrainCircuit}
-          title="Gemini Tasarruf Planı"
+          title="Tasarruf Planı"
           subtitle="Kullanıcının kendi verisine göre öneriler"
           action={
             <button
@@ -196,26 +209,28 @@ export default function InsightsPage() {
           </div>
 
           <div className="mt-5 space-y-3">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#8A968F] px-1">Gemini'nin Önerdiği Aksiyonlar</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-[#8A968F] px-1">Önerilen Aksiyonlar</p>
             {aiAdvice.actions.map((action, index) => (
               <ActionCard key={action} number={index + 1} text={action} />
             ))}
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-[#00FF66]/20 bg-gradient-to-br from-[#00FF66]/8 to-transparent">
-            <div className="h-0.5 w-full bg-gradient-to-r from-[#00FF66] to-transparent" />
-            <div className="p-5 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-[#8A968F] uppercase tracking-wider">Tahmini tasarruf potansiyeli</p>
-                <p className="mt-2 text-3xl font-black text-[#00FF66] drop-shadow-[0_0_10px_rgba(0,255,102,0.3)]">
-                  {aiAdvice.estimated_saving}
-                </p>
-              </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#00FF66]/10">
-                <Zap size={22} className="text-[#00FF66]" />
+          {aiAdvice.estimated_saving && (
+            <div className="mt-6 overflow-hidden rounded-2xl border border-[#00FF66]/20 bg-gradient-to-br from-[#00FF66]/8 to-transparent">
+              <div className="h-0.5 w-full bg-gradient-to-r from-[#00FF66] to-transparent" />
+              <div className="p-5 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-[#8A968F] uppercase tracking-wider">Tahmini tasarruf potansiyeli</p>
+                  <p className="mt-2 text-3xl font-black text-[#00FF66] drop-shadow-[0_0_10px_rgba(0,255,102,0.3)]">
+                    {aiAdvice.estimated_saving}
+                  </p>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#00FF66]/10">
+                  <HandCoins size={22} className="text-[#00FF66]" />
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </Panel>
       </div>
     </div>
@@ -235,7 +250,7 @@ function InsightsEmptyState() {
         </div>
         <h3 className="mt-6 text-2xl font-black text-white">Yeterli Veri Yok</h3>
         <p className="mt-3 text-sm leading-relaxed text-[#8A968F]">
-          Aylık karşılaştırmalar ve Gemini tasarruf önerileri için sistemde yeterli geçmiş veri bulunmuyor.
+          Aylık karşılaştırmalar ve tasarruf önerileri için sistemde yeterli geçmiş veri bulunmuyor.
         </p>
         <div className="mt-8 flex flex-col gap-3">
           <Link
@@ -260,8 +275,8 @@ function InsightsLoading() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#00FF66]/10 text-[#00FF66]">
             <Loader2 className="animate-spin" size={30} />
           </div>
-          <p className="mt-6 text-lg font-black text-white">İçgörüler hazırlanıyor</p>
-          <p className="mt-2 text-sm text-[#8A968F]">Karşılaştırmalar, abonelikler, alışkanlıklar ve Gemini önerileri yükleniyor.</p>
+          <p className="mt-6 text-lg font-black text-white">Finansal detaylar hazırlanıyor</p>
+          <p className="mt-2 text-sm text-[#8A968F]">Karşılaştırmalar, abonelikler, alışkanlıklar ve öneriler yükleniyor.</p>
         </div>
       </motion.div>
     </div>
@@ -430,25 +445,22 @@ function PaymentCard({ item, title, price, type, frequency }) {
   )
 }
 
-function HabitGroup({ title, items, emptyText }) {
+function HabitGroup({ title, description, items }) {
   return (
     <div>
       <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#8A968F]">{title}</p>
-      {items.length ? (
-        <div className="space-y-3">
-          {items.map((item) => (
-            <HabitCard
-              key={item.name}
-              title={item.name}
-              count={item.count}
-              total={formatCurrency(item.total)}
-              category={item.category}
-            />
-          ))}
-        </div>
-      ) : (
-        <p className="rounded-xl border border-[#1B2A24]/40 bg-[#050807]/40 p-4 text-sm text-[#8A968F]">{emptyText}</p>
-      )}
+      {description && <p className="mb-3 text-xs leading-5 text-[#8A968F]">{description}</p>}
+      <div className="space-y-3">
+        {items.map((item) => (
+          <HabitCard
+            key={item.name}
+            title={item.name}
+            count={item.count}
+            total={formatCurrency(item.total)}
+            category={item.category}
+          />
+        ))}
+      </div>
     </div>
   )
 }
@@ -458,7 +470,7 @@ function HabitCard({ title, count, total, category }) {
     <div className="flex items-center justify-between rounded-xl border border-[#1B2A24]/40 bg-[#050807]/40 p-4 transition-all duration-200 hover:border-[#1B2A24]">
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#16C784]/10 text-[#16C784]">
-          <Coffee size={16} />
+          <ListChecks size={16} />
         </div>
         <div>
           <p className="font-bold text-white">{title}</p>

@@ -7,7 +7,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Akıllı Harcama Dedektifi API",
-    description="Kullanıcı harcamalarını analiz eden finansal farkındalık backend sistemi.",
+    description="Kullanıcı harcamalarını analiz eden finansal farkındalık sistemi.",
     version="0.1.0"
 )
 

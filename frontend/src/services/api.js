@@ -3,7 +3,7 @@ import { API_BASE_URL } from './config'
 
 const SESSION_KEY = 'fincoach_session'
 const DEFAULT_DEMO_USER = {
-  name: 'Demo Ogrenci',
+  name: 'Örnek Öğrenci',
   email: 'demo@gmail.com',
   monthly_income: 5000,
 }
@@ -16,11 +16,18 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message =
+    let message =
       error.response?.data?.detail ||
       error.response?.data?.message ||
       error.message ||
-      'Beklenmeyen bir hata olustu.'
+      'Beklenmeyen bir sorun oluştu.'
+
+    if (message === 'User not found') message = 'Kullanıcı bulunamadı.'
+    if (message === 'Transaction not found') message = 'İşlem bulunamadı.'
+    if (message === 'Budget not found') message = 'Bütçe bulunamadı.'
+    if (message === 'Transactions deleted successfully') message = 'İşlemler silindi.'
+    if (message === 'Only CSV or Excel files are supported') message = 'Yalnızca CSV veya Excel dosyaları desteklenir.'
+    if (message.startsWith('File could not be read')) message = 'Dosya okunamadı. Lütfen formatı kontrol edip tekrar dene.'
 
     return Promise.reject(new Error(message))
   },
@@ -171,17 +178,20 @@ function normalizeHabits(data) {
 function normalizeAiAdvice(data) {
   const advice = data?.advice || data || {}
   const text = advice.text || advice.summary || ''
+  const estimatedSaving = advice.estimated_saving || advice.estimatedSaving || ''
+  const hasEstimatedSaving = estimatedSaving && !/^veriye g[öo]re de[ğg]i[şs]ir$/i.test(estimatedSaving.trim())
   const lines = text
     .split(/\r?\n/)
     .map((line) => line.replace(/^[-*\d.\s]+/, '').trim())
     .filter(Boolean)
+  const compactSummary = lines[0] || text.split('.').find(Boolean)?.trim() || ''
 
   return {
     ...advice,
-    title: advice.title || (advice.source === 'gemini' ? 'Gemini Analizi' : 'Finansal Oneri'),
-    summary: advice.summary || text || 'Bu ay icin henuz uretilmis bir oneriniz yok.',
+    title: advice.title || (advice.source === 'gemini' ? 'Akıllı Analiz' : 'Finansal Öneri'),
+    summary: advice.summary || compactSummary || 'Bu ay için henüz üretilmiş bir öneriniz yok.',
     actions: advice.actions?.length ? advice.actions : lines.slice(1, 4),
-    estimated_saving: advice.estimated_saving || 'Veriye gore degisir',
+    estimated_saving: hasEstimatedSaving ? estimatedSaving : null,
   }
 }
 
@@ -238,7 +248,7 @@ export const loginUser = async (payload) => {
       return createUser(DEFAULT_DEMO_USER)
     }
 
-    throw new Error('Bu e-posta ile kayitli kullanici bulunamadi.')
+    throw new Error('Bu e-posta ile kayıtlı kullanıcı bulunamadı.')
   }
 
   setSessionUserId(user.id)
@@ -307,16 +317,6 @@ export const getDashboard = async (params) => {
   return response(normalizeDashboard(result.data))
 }
 
-export const getSummary = async (params) => {
-  const result = await api.get('/analytics/summary', { params: await withBackendParams(params) })
-  return response(normalizeSummary(result.data))
-}
-
-export const getCategories = async (params) => {
-  const result = await api.get('/analytics/categories', { params: await withBackendParams(params) })
-  return response(normalizeCategories(result.data))
-}
-
 export const getMonthlyComparison = async (params) => {
   const result = await api.get('/analytics/monthly-comparison', { params: await withBackendParams(params) })
   return response(normalizeMonthlyComparison(result.data))
@@ -363,7 +363,7 @@ export const loadStudentDemoData = async (payload = {}) => {
         inserted_count: 0,
         skipped_count: 0,
         transactions_count: 0,
-        message: 'Demo verisi daha once yuklenmis.',
+        message: 'Örnek veriler daha önce yüklenmiş.',
       })
     }
 
@@ -408,4 +408,10 @@ export const deleteBudget = async (budgetId) => {
 
 export const deleteTransaction = (transactionId) => {
   return api.delete(`/transactions/${transactionId}`)
+}
+
+export const deleteTransactions = async (params = {}) => {
+  return api.delete('/transactions/', {
+    params: await withBackendParams(params),
+  })
 }

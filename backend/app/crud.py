@@ -132,6 +132,29 @@ def get_transactions(
 
     return query.order_by(models.Transaction.date.desc()).all()
 
+
+def delete_transactions(
+    db: Session,
+    user_id: int,
+    year: Optional[int] = None,
+    month: Optional[int] = None
+):
+    transactions = get_transactions(
+        db=db,
+        user_id=user_id,
+        year=year,
+        month=month
+    )
+
+    deleted_count = len(transactions)
+
+    for transaction in transactions:
+        db.delete(transaction)
+
+    db.commit()
+
+    return deleted_count
+
 def create_many_transactions(
     db: Session,
     transactions: list[schemas.TransactionCreate],

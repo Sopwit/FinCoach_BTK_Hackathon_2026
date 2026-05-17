@@ -15,8 +15,6 @@ export const {
   uploadTransactions,
   getTransactions,
   getDashboard,
-  getSummary,
-  getCategories,
   getMonthlyComparison,
   getRecurringPayments,
   getHabits,
@@ -31,4 +29,5 @@ export const {
   updateBudget,
   deleteBudget,
   deleteTransaction,
+  deleteTransactions,
 } = client

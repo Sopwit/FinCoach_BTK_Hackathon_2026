@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Activity,
   AlertTriangle,
   ArrowDownRight,
   ArrowUpRight,
   BrainCircuit,
-  CreditCard,
+  ChartPie,
   Loader2,
   PiggyBank,
   PlusCircle,
   RefreshCw,
-  TrendingUp,
+  ReceiptTurkishLira,
+  ShieldCheck,
   Wallet,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -29,10 +29,10 @@ import { formatCurrency } from '../utils/formatCurrency'
 
 const CARD_META = {
   total_income: { icon: Wallet, trendType: 'positive', gradient: 'from-[#00FF66]/10 to-transparent' },
-  total_expense: { icon: CreditCard, trendType: 'negative', gradient: 'from-red-500/8 to-transparent' },
+  total_expense: { icon: ReceiptTurkishLira, trendType: 'negative', gradient: 'from-red-500/8 to-transparent' },
   remaining_budget: { icon: PiggyBank, trendType: 'positive', gradient: 'from-amber-500/8 to-transparent' },
-  top_category: { icon: TrendingUp, trendType: 'positive', gradient: 'from-[#16C784]/10 to-transparent' },
-  financial_health: { icon: Activity, trendType: 'positive', gradient: 'from-[#00D4AA]/10 to-transparent' },
+  top_category: { icon: ChartPie, trendType: 'positive', gradient: 'from-[#16C784]/10 to-transparent' },
+  financial_health: { icon: ShieldCheck, trendType: 'positive', gradient: 'from-[#00D4AA]/10 to-transparent' },
 }
 
 export default function DashboardPage() {
@@ -101,7 +101,7 @@ export default function DashboardPage() {
 
       <DashboardSignals dashboard={dashboard} />
 
-      <BackendCharts
+      <DashboardCharts
         dashboard={dashboard}
         aiAdvice={aiAdvice}
         aiLoading={aiLoading}
@@ -121,7 +121,7 @@ function PageHeader() {
       <p className="text-sm font-bold uppercase tracking-widest text-[#00FF66]">Genel Bakış</p>
       <h2 className="mt-3 text-4xl font-black tracking-tight text-white">Finansal Kontrol Paneli</h2>
       <p className="mt-3 max-w-3xl text-[#8A968F] leading-relaxed">
-        Backend analizlerinden gelen kartları, uyarıları, bütçe durumunu ve harcama eğilimlerini takip et.
+        Gelir, gider, bütçe durumu ve harcama eğilimlerini tek ekrandan takip et.
       </p>
     </motion.div>
   )
@@ -169,7 +169,7 @@ function AiAdvicePanel({ aiAdvice, aiLoading, onRefresh }) {
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#00FF66] to-[#16C784] text-[#041008]">
             <BrainCircuit size={22} />
           </div>
-          <p className="text-xs font-bold uppercase tracking-widest text-[#00FF66]">Gemini Analizi</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-[#00FF66]">Akıllı Analiz</p>
         </div>
         <button
           onClick={onRefresh}
@@ -219,7 +219,7 @@ function DashboardSignals({ dashboard }) {
       </section>
 
       <section className="glass-card overflow-hidden rounded-3xl">
-        <PanelHeader title="Backend Uyarıları" />
+        <PanelHeader title="Bütçe Uyarıları" />
         <div className="space-y-3 p-6">
           {alerts.length ? alerts.map((alert) => (
             <div key={`${alert.title}-${alert.message}`} className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4">
@@ -233,7 +233,7 @@ function DashboardSignals({ dashboard }) {
   )
 }
 
-function BackendCharts({ dashboard, aiAdvice, aiLoading, onRefreshAi }) {
+function DashboardCharts({ dashboard, aiAdvice, aiLoading, onRefreshAi }) {
   const comparison = dashboard?.charts?.monthly_comparison || []
   const habits = dashboard?.charts?.spending_habits || []
   const budgets = dashboard?.budget_status || dashboard?.charts?.budget_usage || []
@@ -242,7 +242,7 @@ function BackendCharts({ dashboard, aiAdvice, aiLoading, onRefreshAi }) {
     <div className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,0.95fr)]">
       <div className="space-y-6">
         <section className="glass-card overflow-hidden rounded-3xl">
-          <PanelHeader title="Aylık Karşılaştırma" subtitle="Backend dashboard grafiğinden gelen kategori bazlı değişim." />
+          <PanelHeader title="Aylık Karşılaştırma" subtitle="Kategori bazında önceki ay ve bu ay harcama değişimi." />
           <div className="h-64 p-5">
             {comparison.length ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -303,7 +303,7 @@ function DashboardCategories({ categories }) {
 
   return (
     <section className="glass-card mt-8 overflow-hidden rounded-3xl">
-      <PanelHeader title="Kategori Dağılımı" subtitle="Dashboard categories alanından gelen harcama özeti." />
+      <PanelHeader title="Kategori Dağılımı" subtitle="Bu ayki harcamaların kategori bazlı dağılımı." />
       <div className="grid gap-3 p-6 md:grid-cols-2 xl:grid-cols-3">
         {categories.map((item) => (
           <div key={item.category} className="rounded-2xl border border-[#1B2A24]/50 bg-[#050807]/50 p-4">
@@ -411,7 +411,7 @@ function DashboardEmptyState() {
         </div>
         <h3 className="mt-6 text-2xl font-black text-white">Henüz veriniz yok</h3>
         <p className="mt-3 text-sm leading-relaxed text-[#8A968F]">
-          Analizleri görebilmek için manuel işlem ekleyebilir veya örnek bir demo veri seti yükleyebilirsiniz.
+          Analizleri görebilmek için ilk işlemini ekleyebilir veya örnek verilerle başlayabilirsin.
         </p>
         <Link
           to="/transactions"

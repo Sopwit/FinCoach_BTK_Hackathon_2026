@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, FileSpreadsheet, Loader2, Plus, Search, Sparkles, Trash2, UploadCloud, XCircle, ArrowUpRight, ArrowDownRight, Filter, Pencil } from 'lucide-react'
-import { getTransactions, addManualTransaction, deleteTransaction, uploadTransactions, updateTransaction } from '../services/client'
+import { CheckCircle2, FileSpreadsheet, Loader2, Plus, Search, Trash2, UploadCloud, XCircle, ArrowUpRight, ArrowDownRight, Filter, Pencil, ReceiptText } from 'lucide-react'
+import { getTransactions, addManualTransaction, deleteTransaction, deleteTransactions, uploadTransactions, updateTransaction } from '../services/client'
 import { useDemo } from '../hooks/useDemo'
 import { formatCurrency } from '../utils/formatCurrency'
 import { formatDate } from '../utils/formatDate'
@@ -30,6 +30,7 @@ export default function TransactionsPage() {
   const [deletedId, setDeletedId] = useState(null)
   const [editing, setEditing] = useState(null)
   const [uploadError, setUploadError] = useState('')
+  const [deletingAll, setDeletingAll] = useState(false)
   const { selectedMonth, selectedUserId } = useDemo()
 
   const loadData = useCallback(async () => {
@@ -103,6 +104,26 @@ export default function TransactionsPage() {
     }, 300)
   }
 
+  const handleDeleteAll = async () => {
+    if (!transactions.length || deletingAll) return
+
+    const confirmed = window.confirm('Seçili ayın tüm işlemleri silinsin mi? Bu işlem geri alınamaz.')
+    if (!confirmed) return
+
+    setDeletingAll(true)
+    try {
+      await deleteTransactions({
+        user_id: selectedUserId,
+        month: selectedMonth,
+      })
+      setTransactions([])
+      setDeletedId(null)
+      setLastAdded(null)
+    } finally {
+      setDeletingAll(false)
+    }
+  }
+
   const handleEditSave = async (payload) => {
     const res = await updateTransaction(editing.id, payload)
     setTransactions((items) => items.map((item) => item.id === editing.id ? res.data : item))
@@ -144,7 +165,7 @@ export default function TransactionsPage() {
       <div className="mb-8 grid gap-4 md:grid-cols-3">
         <MiniStat icon={ArrowUpRight} iconColor="text-[#00FF66]" title="Bu Ay Gelir" value={formatCurrency(totalIncome)} valueColor="text-[#00FF66]" />
         <MiniStat icon={ArrowDownRight} iconColor="text-red-400" title="Bu Ay Gider" value={formatCurrency(totalExpense)} valueColor="text-red-400" />
-        <MiniStat icon={FileSpreadsheet} iconColor="text-[#16C784]" title="Listelenen İşlem" value={`${filteredTransactions.length} / ${transactions.length}`} valueColor="text-white" />
+        <MiniStat icon={ReceiptText} iconColor="text-[#16C784]" title="Listelenen İşlem" value={`${filteredTransactions.length} / ${transactions.length}`} valueColor="text-white" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
@@ -152,7 +173,7 @@ export default function TransactionsPage() {
         <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="glass-card overflow-hidden rounded-3xl">
           <div className="flex items-center gap-3 border-b border-[#1B2A24]/60 px-6 py-5">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#00FF66] to-[#16C784] text-[#041008]"><Plus size={22} /></div>
-            <div><h3 className="text-lg font-bold text-white">Manuel İşlem Ekle</h3><p className="text-sm text-[#8A968F]">Kategori algılama backend tarafından yapılır.</p></div>
+            <div><h3 className="text-lg font-bold text-white">Manuel İşlem Ekle</h3><p className="text-sm text-[#8A968F]">Açıklamaya göre kategori otomatik belirlenir.</p></div>
           </div>
           <div className="p-6">
             <form onSubmit={handleSubmit} className="grid gap-4">
@@ -226,7 +247,7 @@ export default function TransactionsPage() {
               <UploadTransactionsTable transactions={uploadResult.transactions} />
             )}
             <div className="mt-5 rounded-2xl border border-[#1B2A24]/60 bg-[#050807]/40 p-4">
-              <div className="mb-3 flex items-center gap-2"><Sparkles size={14} className="text-[#00FF66]" /><p className="text-sm font-bold text-[#00FF66]">Beklenen format</p></div>
+              <div className="mb-3 flex items-center gap-2"><FileSpreadsheet size={14} className="text-[#00FF66]" /><p className="text-sm font-bold text-[#00FF66]">Beklenen format</p></div>
               <div className="overflow-hidden rounded-xl border border-[#1B2A24]/60">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-[#07100D] text-[#8A968F]"><tr><th className="px-3 py-2.5">date</th><th className="px-3 py-2.5">description</th><th className="px-3 py-2.5">amount</th><th className="px-3 py-2.5">type</th></tr></thead>
@@ -246,7 +267,18 @@ export default function TransactionsPage() {
         <div className="border-b border-[#1B2A24]/60 px-6 py-5">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div><h3 className="text-lg font-bold text-white">İşlem Listesi</h3><p className="mt-1 text-sm text-[#8A968F]">Sisteme eklenen işlemler kategori ve kaynak bilgisiyle listelenir.</p></div>
-            <div className="rounded-xl border border-[#00FF66]/20 bg-[#00FF66]/5 px-4 py-2 text-sm font-bold text-[#00FF66]">{filteredTransactions.length} / {transactions.length} işlem</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="rounded-xl border border-[#00FF66]/20 bg-[#00FF66]/5 px-4 py-2 text-sm font-bold text-[#00FF66]">{filteredTransactions.length} / {transactions.length} işlem</div>
+              <button
+                type="button"
+                onClick={handleDeleteAll}
+                disabled={transactions.length === 0 || deletingAll}
+                className="inline-flex items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-2 text-sm font-bold text-red-300 transition-all hover:border-red-400/50 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deletingAll ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                Hepsini Sil
+              </button>
+            </div>
           </div>
 
           {/* Search & Filters */}
@@ -270,9 +302,9 @@ export default function TransactionsPage() {
               </select>
               <select className="input py-2.5 text-sm min-w-[120px]" value={filterSource} onChange={(e) => setFilterSource(e.target.value)}>
                 <option value="all">Tüm Kaynaklar</option>
-                <option value="manual">Manual</option>
+                <option value="manual">Manuel</option>
                 <option value="csv">CSV</option>
-                <option value="demo">Demo</option>
+                <option value="demo">Örnek Veri</option>
               </select>
             </div>
           </div>
@@ -418,7 +450,7 @@ function UploadTransactionsTable({ transactions }) {
     <div className="mt-5 overflow-hidden rounded-2xl border border-[#1B2A24]/60 bg-[#050807]/40">
       <div className="border-b border-[#1B2A24]/60 px-4 py-3">
         <p className="text-sm font-bold text-white">Yüklenen İşlemler</p>
-        <p className="mt-1 text-xs text-[#8A968F]">Backend tarafından eklenen ve kategorilendirilen kayıtlar.</p>
+        <p className="mt-1 text-xs text-[#8A968F]">İçe aktarılan işlemler otomatik kategorilendirilir.</p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[920px] text-left text-xs">

@@ -76,24 +76,20 @@ export default function Chatbot() {
         current_page: location.pathname,
       })
 
-      const warning = response.data.warning
       setMessages((items) => [
         ...items,
         {
           role: 'assistant',
           content: response.data.answer,
-          meta: response.data.used_context_summary,
-          warning,
         },
       ])
     } catch (err) {
-      setError(err.message || 'Chatbot yanıtı alınamadı.')
+      setError(err.message || 'Yanıt hazırlanamadı.')
       setMessages((items) => [
         ...items,
         {
           role: 'assistant',
-          content: 'Şu anda Gemini yanıtı alınamadı. Lütfen backend ve API anahtarını kontrol edip tekrar dene.',
-          warning: err.message,
+          content: 'Şu anda yanıt hazırlayamıyorum. Lütfen biraz sonra tekrar dene.',
         },
       ])
     } finally {
@@ -131,7 +127,7 @@ export default function Chatbot() {
             {loading && (
               <div className="flex items-center gap-2 text-sm text-[#8A968F]">
                 <Loader2 size={16} className="animate-spin text-[#00FF66]" />
-                Context hazırlanıyor ve Gemini yanıtlıyor...
+                Finansal veriler inceleniyor...
               </div>
             )}
           </div>
@@ -185,12 +181,6 @@ function ChatMessage({ message }) {
       ].join(' ')}
       >
         <p className="whitespace-pre-wrap">{message.content}</p>
-        {message.warning && (
-          <p className="mt-2 rounded-lg bg-yellow-500/10 px-2 py-1 text-xs text-yellow-200">{message.warning}</p>
-        )}
-        {message.meta && (
-          <p className="mt-2 text-[11px] leading-4 text-[#8A968F]">Context: {message.meta}</p>
-        )}
       </div>
     </div>
   )

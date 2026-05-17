@@ -33,7 +33,7 @@ export function DemoProvider({ children }) {
   useEffect(() => {
     Promise.resolve().then(refreshUsers)
     getHealth()
-      .then(() => setHealth({ status: 'online', message: 'Backend bağlı' }))
+      .then(() => setHealth({ status: 'online', message: 'Bağlantı hazır' }))
       .catch((error) => setHealth({ status: 'offline', message: error.message }))
   }, [])
 

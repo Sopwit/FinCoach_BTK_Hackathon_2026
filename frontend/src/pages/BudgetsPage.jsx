@@ -72,7 +72,7 @@ export default function BudgetsPage() {
         <p className="text-sm font-bold uppercase tracking-widest text-[#00FF66]">Bütçe Yönetimi</p>
         <h2 className="mt-3 text-4xl font-black tracking-tight text-white">Kategori Limitleri</h2>
         <p className="mt-3 max-w-3xl text-[#8A968F] leading-relaxed">
-          Aylık kategori limitlerini ekle, güncelle ve backend tarafından hesaplanan kullanım durumunu takip et.
+          Aylık kategori limitlerini ekle, güncelle ve kullanım durumunu anlık takip et.
         </p>
       </motion.div>
 
@@ -135,11 +135,10 @@ export default function BudgetsPage() {
 
       <section className="glass-card mt-8 overflow-hidden rounded-3xl">
         <div className="border-b border-[#1B2A24]/60 px-6 py-5">
-          <h3 className="text-lg font-bold text-white">Ham Bütçe Listesi</h3>
-          <p className="mt-1 text-sm text-[#8A968F]">GET /budgets/ yanıtı, durum hesaplamasından ayrı olarak gösterilir.</p>
+          <h3 className="text-lg font-bold text-white">Tanımlı Bütçeler</h3>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-[#8A968F]">Ham bütçe listesi yükleniyor...</div>
+          <div className="p-8 text-center text-[#8A968F]">Bütçe listesi yükleniyor...</div>
         ) : rawBudgets.length === 0 ? (
           <div className="p-8 text-center text-[#8A968F]">Kayıtlı bütçe yok.</div>
         ) : (

@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   Circle,
-  DatabaseZap,
   Loader2,
   Menu,
   RotateCcw,
@@ -39,10 +39,10 @@ export default function Topbar({ onMenuToggle }) {
       const alreadyLoaded = response.data.transactions_count === 0
       setNotice({
         type: alreadyLoaded ? 'warning' : 'success',
-        title: alreadyLoaded ? 'Demo verisi zaten yüklü' : 'Demo verisi hazır',
+        title: alreadyLoaded ? 'Örnek veriler zaten yüklü' : 'Örnek veriler hazır',
         message: alreadyLoaded
-          ? 'Mevcut demo verisini temizleyip yeniden yükleyebilirsin.'
-          : `${response.data.transactions_count} işlem içeren demo verisi yüklendi.`,
+          ? 'Mevcut örnek verileri temizleyip yeniden yükleyebilirsin.'
+          : `${response.data.transactions_count} işlem içeren örnek veri yüklendi.`,
         canReload: alreadyLoaded,
       })
       if (!alreadyLoaded) {
@@ -52,9 +52,9 @@ export default function Topbar({ onMenuToggle }) {
       const alreadyLoaded = error.message.includes('already been loaded')
       setNotice({
         type: alreadyLoaded ? 'warning' : 'error',
-        title: alreadyLoaded ? 'Demo verisi zaten yüklü' : 'Demo yüklenemedi',
+        title: alreadyLoaded ? 'Örnek veriler zaten yüklü' : 'Örnek veriler yüklenemedi',
         message: alreadyLoaded
-          ? 'Mevcut demo verisini temizleyip yeniden yükleyebilirsin.'
+          ? 'Mevcut örnek verileri temizleyip yeniden yükleyebilirsin.'
           : error.message,
         canReload: alreadyLoaded,
       })
@@ -70,8 +70,8 @@ export default function Topbar({ onMenuToggle }) {
       await clearStudentDemoData({ user_id: selectedUserId })
       setNotice({
         type: 'success',
-        title: reload ? 'Demo verisi temizlendi' : 'Demo verisi temizlendi',
-        message: reload ? 'Yeni demo verisi yükleniyor...' : 'Seçili kullanıcı için demo kayıtları kaldırıldı.',
+        title: 'Örnek veriler temizlendi',
+        message: reload ? 'Yeni örnek veriler yükleniyor...' : 'Seçili kullanıcı için örnek kayıtlar kaldırıldı.',
       })
       if (reload) {
         await handleLoadDemoData()
@@ -79,7 +79,7 @@ export default function Topbar({ onMenuToggle }) {
         window.setTimeout(() => window.location.reload(), 800)
       }
     } catch (error) {
-      setNotice({ type: 'error', title: 'Demo verisi temizlenemedi', message: error.message })
+      setNotice({ type: 'error', title: 'Örnek veriler temizlenemedi', message: error.message })
     } finally {
       setClearingDemo(false)
     }
@@ -111,7 +111,7 @@ export default function Topbar({ onMenuToggle }) {
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="hidden items-center gap-2 rounded-xl border border-[#1B2A24] bg-[#0B1110]/60 px-3 py-2 text-xs font-bold text-[#B7C2BC] md:flex">
             <Circle size={9} className={health.status === 'online' ? 'fill-[#00FF66] text-[#00FF66]' : 'fill-red-400 text-red-400'} />
-            Backend
+            Bağlantı
           </div>
 
           <select
@@ -141,9 +141,7 @@ export default function Topbar({ onMenuToggle }) {
               <option value="2026-03">Mart 2026</option>
             </select>
             <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#8A968F]">
-              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <ChevronDown size={15} />
             </div>
           </div>
 
@@ -160,8 +158,8 @@ export default function Topbar({ onMenuToggle }) {
               </>
             ) : (
               <>
-                <DatabaseZap size={16} />
-                <span className="hidden sm:inline">Örnek Veriyi Yükle</span>
+                <RotateCcw size={16} />
+                <span className="hidden sm:inline">Örnek Verileri Yükle</span>
               </>
             )}
           </button>
@@ -173,7 +171,7 @@ export default function Topbar({ onMenuToggle }) {
             className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold text-red-300 transition-all duration-300 hover:border-red-400/50 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {clearingDemo ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-            <span className="hidden xl:inline">Demo Verisini Temizle</span>
+            <span className="hidden xl:inline">Örnek Verileri Temizle</span>
           </button>
         </div>
       </div>
