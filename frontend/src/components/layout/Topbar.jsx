@@ -33,9 +33,14 @@ export default function Topbar({ onMenuToggle }) {
   const handleLoadDemoData = async () => {
     setLoadingDemo(true)
     setNotice(null)
+    const activeUserId = selectedUserId
 
     try {
-      const response = await loadStudentDemoData({ user_id: selectedUserId })
+      const response = await loadStudentDemoData({
+        user_id: activeUserId,
+        preserve_session: true,
+      })
+      setSelectedUserId(activeUserId)
       const alreadyLoaded = response.data.transactions_count === 0
       setNotice({
         type: alreadyLoaded ? 'warning' : 'success',
@@ -67,7 +72,11 @@ export default function Topbar({ onMenuToggle }) {
     setClearingDemo(true)
     setNotice(null)
     try {
-      await clearStudentDemoData({ user_id: selectedUserId })
+      await clearStudentDemoData({
+        user_id: selectedUserId,
+        preserve_session: true,
+      })
+      setSelectedUserId(selectedUserId)
       setNotice({
         type: 'success',
         title: 'Örnek veriler temizlendi',
@@ -120,7 +129,7 @@ export default function Topbar({ onMenuToggle }) {
               setSelectedUserId(event.target.value)
               refreshUsers()
             }}
-            className="hidden max-w-[190px] rounded-xl border border-[#1B2A24] bg-[#0B1110]/60 px-3 py-2.5 text-xs font-semibold text-[#B7C2BC] backdrop-blur-lg transition-all focus:border-[#00FF66]/50 focus:outline-none sm:block"
+            className="hidden"
           >
             {users.length === 0 ? (
               <option value={selectedUserId}>Kullanıcı {selectedUserId}</option>

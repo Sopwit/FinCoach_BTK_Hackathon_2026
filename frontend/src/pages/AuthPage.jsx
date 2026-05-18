@@ -3,14 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
+  Banknote,
   BarChart3,
   BrainCircuit,
   CheckCircle2,
+  KeyRound,
   Loader2,
   LockKeyhole,
+  Mail,
   Repeat,
   ShieldCheck,
   TrendingUp,
+  UserRound,
   Wallet,
 } from 'lucide-react'
 import {
@@ -27,44 +31,43 @@ const fadeUp = {
 
 export default function AuthPage() {
   const navigate = useNavigate()
-
   const [activeTab, setActiveTab] = useState('login')
   const [loadingDemo, setLoadingDemo] = useState(false)
   const [demoMessage, setDemoMessage] = useState('')
+  const [demoError, setDemoError] = useState('')
 
   const handleDemoStart = async () => {
     setLoadingDemo(true)
     setDemoMessage('')
+    setDemoError('')
 
-    const response = await loadStudentDemoData({
-      user_id: DEFAULT_USER_ID,
-    })
+    try {
+      const response = await loadStudentDemoData({
+        user_id: DEFAULT_USER_ID,
+      })
 
-    setDemoMessage(
-      response.data.transactions_count > 0
-        ? `${response.data.transactions_count} işlem içeren örnek finans profili hazırlandı.`
-        : 'Örnek finans profili zaten hazır.',
-    )
+      setDemoMessage(
+        response.data.transactions_count > 0
+          ? `${response.data.transactions_count} işlem içeren örnek finans profili hazırlandı.`
+          : 'Örnek finans profili zaten hazır.',
+      )
 
-    setTimeout(() => {
-      navigate('/dashboard')
-    }, 650)
+      setTimeout(() => {
+        navigate('/dashboard')
+      }, 650)
+    } catch (error) {
+      setDemoError(error.message || 'Örnek profil hazırlanamadı.')
+    } finally {
+      setLoadingDemo(false)
+    }
   }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#030706] text-[#F4F7F5]">
-      {/* Ambient background */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-40 top-10 h-[500px] w-[500px] rounded-full bg-[#00FF66]/8 blur-[120px]" />
-        <div className="absolute right-0 top-0 h-[600px] w-[600px] rounded-full bg-[#16C784]/6 blur-[150px]" />
-        <div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-[#00FF66]/4 blur-[120px]" />
-      </div>
-
-      {/* Grid overlay */}
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(0,255,102,0.12),transparent_32%),linear-gradient(315deg,rgba(22,199,132,0.08),transparent_36%)]" />
       <div className="pointer-events-none absolute inset-0 soft-grid opacity-60" />
 
       <div className="relative mx-auto grid min-h-screen max-w-7xl grid-cols-1 px-6 py-10 lg:grid-cols-2 lg:items-center lg:gap-20 lg:px-12">
-        {/* Left: Branding */}
         <motion.section
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -76,7 +79,7 @@ export default function AuthPage() {
             className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-[#1B2A24] bg-[#0B1110]/80 px-5 py-2.5 text-sm font-bold text-[#00FF66] backdrop-blur-lg"
           >
             <BrainCircuit size={16} />
-            AI Destekli Finans Koçu
+            AI destekli finans koçu
           </motion.div>
 
           <motion.div
@@ -98,12 +101,10 @@ export default function AuthPage() {
           <motion.p
             {...fadeUp}
             transition={{ delay: 0.2 }}
-            className="mt-7 max-w-xl text-lg leading-8 text-[#B7C2BC] font-medium"
+            className="mt-7 max-w-xl text-lg font-medium leading-8 text-[#B7C2BC]"
           >
-            Gelir ve giderlerini analiz eder, harcama alışkanlıklarını ortaya
-            çıkarır, önceki ayla karşılaştırır ve{' '}
-            <span className="text-[#00FF66] font-bold">AI destekli</span> kişisel bütçe
-            önerileri sunar.
+            Gelir ve giderlerini analiz et, harcama alışkanlıklarını gör ve AI destekli
+            önerilerle bütçeni daha bilinçli yönet.
           </motion.p>
 
           <motion.div
@@ -120,7 +121,7 @@ export default function AuthPage() {
             <FeatureCard
               icon={BrainCircuit}
               title="Akıllı Öneriler"
-              text="Kişisel, uygulanabilir aksiyonlar."
+              text="Kişisel ve uygulanabilir aksiyonlar."
               delay={0.35}
             />
             <FeatureCard
@@ -138,29 +139,24 @@ export default function AuthPage() {
           >
             <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-[#00FF66]/50 to-transparent" />
             <div className="p-5">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="mb-2 flex items-center gap-2">
                 <TrendingUp size={14} className="text-[#00FF66]" />
-                <p className="text-sm font-bold text-[#00FF66]">
-                  Örnek Senaryo
-                </p>
+                <p className="text-sm font-bold text-[#00FF66]">Örnek senaryo</p>
               </div>
               <p className="text-sm leading-6 text-[#8A968F]">
-                Öğrenci gelir-giderleri, dışarıdan yemek artışı,
-                Spotify/Netflix abonelikleri, önceki ay karşılaştırması ve kişisel
-                tasarruf önerileri tek akışta gösterilir.
+                Öğrenci gelir-giderleri, abonelikler, önceki ay karşılaştırması ve tasarruf
+                önerileri tek panelde gösterilir.
               </p>
             </div>
           </motion.div>
         </motion.section>
 
-        {/* Right: Auth Card */}
         <motion.section
           initial={{ opacity: 0, y: 30, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           className="mt-10 overflow-hidden rounded-[2rem] border border-[#1B2A24] bg-[#0B1110]/80 shadow-[0_0_100px_rgba(0,255,102,0.06)] backdrop-blur-2xl lg:mt-0"
         >
-          {/* Gradient top stripe */}
           <div className="h-1 w-full bg-gradient-to-r from-[#00FF66] via-[#16C784] to-[#00FF66]" />
 
           <div className="p-7">
@@ -173,12 +169,10 @@ export default function AuthPage() {
                 Hesabına eriş
               </h2>
               <p className="mt-2.5 text-sm leading-6 text-[#8A968F]">
-                Örnek finans profiliyle hızlıca başlayabilir veya kendi kullanıcı
-                bilgilerinle devam edebilirsin.
+                Kendi hesabınla devam et veya sunum için hazır örnek finans profiline geç.
               </p>
             </div>
 
-            {/* Tab selector */}
             <div className="mb-6 grid grid-cols-2 rounded-2xl border border-[#1B2A24] bg-[#050807] p-1.5">
               <button
                 type="button"
@@ -209,7 +203,6 @@ export default function AuthPage() {
 
             {activeTab === 'login' ? <LoginForm /> : <RegisterForm />}
 
-            {/* Divider */}
             <div className="my-7 flex items-center gap-4">
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#1B2A24] to-transparent" />
               <span className="text-xs font-bold uppercase tracking-[0.25em] text-[#66726B]">
@@ -218,7 +211,6 @@ export default function AuthPage() {
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#1B2A24] to-transparent" />
             </div>
 
-            {/* Sample profile button */}
             <button
               type="button"
               onClick={handleDemoStart}
@@ -238,31 +230,14 @@ export default function AuthPage() {
               )}
             </button>
 
-            {demoMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-5 overflow-hidden rounded-2xl border border-[#00FF66]/30 bg-[#00FF66]/5"
-              >
-                <div className="h-0.5 w-full bg-gradient-to-r from-[#00FF66] to-[#16C784]" />
-                <div className="p-4">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2
-                      size={20}
-                      className="mt-0.5 shrink-0 text-[#00FF66]"
-                    />
-                    <div>
-                      <p className="font-bold text-white">Örnek profil hazır</p>
-                      <p className="mt-1 text-sm leading-6 text-[#B7C2BC]">
-                        {demoMessage}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
+            {(demoMessage || demoError) && (
+              <Notice
+                type={demoError ? 'error' : 'success'}
+                title={demoError ? 'Örnek profil açılamadı' : 'Örnek profil hazır'}
+                message={demoError || demoMessage}
+              />
             )}
 
-            {/* Mini metrics */}
             <div className="mt-7 grid gap-3 sm:grid-cols-3">
               <MiniMetric icon={BarChart3} value="2 ay" label="geçmiş veri" />
               <MiniMetric icon={Repeat} value="3" label="abonelik" />
@@ -278,18 +253,13 @@ export default function AuthPage() {
 function LoginForm() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('demo@gmail.com')
-  const [password, setPassword] = useState('123')
+  const [password, setPassword] = useState('12345')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       setError('E-posta ve şifre alanları boş bırakılamaz.')
-      return
-    }
-    
-    if (!email.endsWith('@gmail.com')) {
-      setError('Sadece @gmail.com uzantılı hesaplar desteklenmektedir.')
       return
     }
 
@@ -308,30 +278,26 @@ function LoginForm() {
 
   return (
     <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); handleLogin() }}>
-      <input
+      <InputField
+        icon={Mail}
+        label="E-posta"
         type="email"
-        placeholder="E-posta (@gmail.com)"
-        className="input"
+        placeholder="ornek@gmail.com"
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={setEmail}
+        autoComplete="email"
       />
-      <input
+      <InputField
+        icon={KeyRound}
+        label="Şifre"
         type="password"
-        placeholder="Şifre"
-        className="input"
+        placeholder="Şifreni gir"
         value={password}
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={setPassword}
+        autoComplete="current-password"
       />
-      {error && (
-        <p className="text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{error}</p>
-      )}
-      <button
-        type="submit"
-        disabled={loading}
-        className="rounded-2xl border border-[#1B2A24] px-5 py-3.5 text-sm font-bold text-[#B7C2BC] transition-all duration-300 hover:border-[#00FF66]/50 hover:text-white hover:bg-[#00FF66]/5 hover:shadow-[0_0_20px_rgba(0,255,102,0.08)] disabled:opacity-60"
-      >
-        {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-      </button>
+      {error && <Alert message={error} />}
+      <SubmitButton loading={loading} loadingText="Giriş yapılıyor..." text="Giriş Yap" />
     </form>
   )
 }
@@ -351,9 +317,9 @@ function RegisterForm() {
       setError('Tüm alanlar doldurulmalıdır.')
       return
     }
-    
-    if (!email.endsWith('@gmail.com')) {
-      setError('Sadece @gmail.com uzantılı hesaplar desteklenmektedir.')
+
+    if (password.trim().length < 3) {
+      setError('Şifre en az 3 karakter olmalıdır.')
       return
     }
 
@@ -362,6 +328,7 @@ function RegisterForm() {
       setError('Geçerli bir aylık gelir giriniz.')
       return
     }
+
     setError('')
     setLoading(true)
 
@@ -383,26 +350,79 @@ function RegisterForm() {
 
   return (
     <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); handleRegister() }}>
-      <input type="text" placeholder="Ad Soyad" className="input" value={name} onChange={(e) => setName(e.target.value)} />
-      <input type="email" placeholder="E-posta (@gmail.com)" className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <input type="password" placeholder="Şifre" className="input" value={password} onChange={(e) => setPassword(e.target.value)} />
-      <input type="number" placeholder="Aylık gelir: 5000" className="input" value={income} onChange={(e) => setIncome(e.target.value)} />
-      {error && (
-        <p className="text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{error}</p>
-      )}
+      <InputField icon={UserRound} label="Ad Soyad" placeholder="Adını yaz" value={name} onChange={setName} autoComplete="name" />
+      <InputField icon={Mail} label="E-posta" type="email" placeholder="ornek@gmail.com" value={email} onChange={setEmail} autoComplete="email" />
+      <InputField icon={KeyRound} label="Şifre" type="password" placeholder="Şifre" value={password} onChange={setPassword} autoComplete="new-password" />
+      <InputField icon={Banknote} label="Aylık Gelir" type="number" placeholder="5000" value={income} onChange={setIncome} inputMode="decimal" />
+      {error && <Alert message={error} />}
       {success && (
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs font-semibold text-[#00FF66] bg-[#00FF66]/10 border border-[#00FF66]/20 rounded-xl px-4 py-2.5">
-          Hesap oluşturuldu! Yönlendiriliyorsun...
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl border border-[#00FF66]/20 bg-[#00FF66]/10 px-4 py-2.5 text-xs font-semibold text-[#00FF66]">
+          Hesap oluşturuldu. Yönlendiriliyorsun...
         </motion.p>
       )}
-      <button
-        type="submit"
-        disabled={loading}
-        className="rounded-2xl border border-[#1B2A24] px-5 py-3.5 text-sm font-bold text-[#B7C2BC] transition-all duration-300 hover:border-[#00FF66]/50 hover:text-white hover:bg-[#00FF66]/5 hover:shadow-[0_0_20px_rgba(0,255,102,0.08)] disabled:opacity-60"
-      >
-        {loading ? 'Oluşturuluyor...' : 'Hesap Oluştur'}
-      </button>
+      <SubmitButton loading={loading} loadingText="Oluşturuluyor..." text="Hesap Oluştur" />
     </form>
+  )
+}
+
+function InputField({ icon: Icon, label, value, onChange, ...props }) {
+  return (
+    <label className="grid gap-2">
+      <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#66726B]">{label}</span>
+      <span className="relative">
+        <Icon size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#00FF66]" />
+        <input
+          className="input pl-11"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          {...props}
+        />
+      </span>
+    </label>
+  )
+}
+
+function SubmitButton({ loading, loadingText, text }) {
+  return (
+    <button
+      type="submit"
+      disabled={loading}
+      className="rounded-2xl border border-[#1B2A24] px-5 py-3.5 text-sm font-bold text-[#B7C2BC] transition-all duration-300 hover:border-[#00FF66]/50 hover:bg-[#00FF66]/5 hover:text-white hover:shadow-[0_0_20px_rgba(0,255,102,0.08)] disabled:opacity-60"
+    >
+      {loading ? loadingText : text}
+    </button>
+  )
+}
+
+function Alert({ message }) {
+  return (
+    <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-xs font-semibold text-red-400">
+      {message}
+    </p>
+  )
+}
+
+function Notice({ type, title, message }) {
+  const isError = type === 'error'
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={[
+        'mt-5 overflow-hidden rounded-2xl border',
+        isError ? 'border-red-500/30 bg-red-500/5' : 'border-[#00FF66]/30 bg-[#00FF66]/5',
+      ].join(' ')}
+    >
+      <div className={isError ? 'h-0.5 w-full bg-red-400' : 'h-0.5 w-full bg-gradient-to-r from-[#00FF66] to-[#16C784]'} />
+      <div className="flex items-start gap-3 p-4">
+        <CheckCircle2 size={20} className={isError ? 'mt-0.5 shrink-0 text-red-400' : 'mt-0.5 shrink-0 text-[#00FF66]'} />
+        <div>
+          <p className="font-bold text-white">{title}</p>
+          <p className="mt-1 text-sm leading-6 text-[#B7C2BC]">{message}</p>
+        </div>
+      </div>
+    </motion.div>
   )
 }
 
@@ -412,7 +432,7 @@ function FeatureCard({ icon: Icon, title, text, delay }) {
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, ease: [0.22, 1, 0.36, 1] }}
-      className="group overflow-hidden rounded-2xl border border-[#1B2A24] bg-[#0B1110]/70 p-5 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#00FF66]/30 hover:shadow-[0_8px_30px_rgba(0,255,102,0.08)] backdrop-blur-lg"
+      className="group overflow-hidden rounded-2xl border border-[#1B2A24] bg-[#0B1110]/70 p-5 backdrop-blur-lg transition-all duration-300 hover:-translate-y-1.5 hover:border-[#00FF66]/30 hover:shadow-[0_8px_30px_rgba(0,255,102,0.08)]"
     >
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#00FF66]/10 text-[#00FF66] transition-all duration-300 group-hover:bg-[#00FF66]/20 group-hover:shadow-[0_0_15px_rgba(0,255,102,0.15)]">
         <Icon size={20} />
@@ -430,7 +450,7 @@ function MiniMetric({ icon: Icon, value, label }) {
         <Icon size={16} />
       </div>
       <div>
-        <p className="text-lg font-black text-[#00FF66] leading-tight">{value}</p>
+        <p className="text-lg font-black leading-tight text-[#00FF66]">{value}</p>
         <p className="text-xs text-[#8A968F]">{label}</p>
       </div>
     </div>

@@ -70,10 +70,11 @@ function normalizePeriod(params = {}) {
   }
 }
 
-async function ensureUserId(preferredUserId) {
+async function ensureUserId(preferredUserId, options = {}) {
+  const { persist = true } = options
   const sessionUserId = getSessionUserId()
   if (preferredUserId) {
-    setSessionUserId(preferredUserId)
+    if (persist) setSessionUserId(preferredUserId)
     return preferredUserId
   }
   if (sessionUserId) return sessionUserId
@@ -85,12 +86,12 @@ async function ensureUserId(preferredUserId) {
     users.find((user) => user.email === DEFAULT_DEMO_USER.email)
 
   if (demoUser) {
-    setSessionUserId(demoUser.id)
+    if (persist) setSessionUserId(demoUser.id)
     return demoUser.id
   }
 
   const created = await api.post('/users/', DEFAULT_DEMO_USER)
-  setSessionUserId(created.data.id)
+  if (persist) setSessionUserId(created.data.id)
   return created.data.id
 }
 
@@ -346,12 +347,19 @@ export const sendChatMessage = async (payload) => {
 }
 
 export const loadStudentDemoData = async (payload = {}) => {
-  const userId = await ensureUserId(payload.user_id)
+  const previousUserId = getSessionUserId()
+  const userId = await ensureUserId(payload.user_id, {
+    persist: payload.preserve_session !== true,
+  })
 
   try {
     const result = await api.post('/demo/load-student-data', null, {
       params: { user_id: userId },
     })
+
+    if (payload.preserve_session && previousUserId) {
+      setSessionUserId(previousUserId)
+    }
 
     return response({
       ...result.data,
@@ -359,6 +367,10 @@ export const loadStudentDemoData = async (payload = {}) => {
     })
   } catch (error) {
     if (error.message.includes('already been loaded')) {
+      if (payload.preserve_session && previousUserId) {
+        setSessionUserId(previousUserId)
+      }
+
       return response({
         inserted_count: 0,
         skipped_count: 0,
@@ -372,10 +384,17 @@ export const loadStudentDemoData = async (payload = {}) => {
 }
 
 export const clearStudentDemoData = async (payload = {}) => {
-  const userId = await ensureUserId(payload.user_id)
+  const previousUserId = getSessionUserId()
+  const userId = await ensureUserId(payload.user_id, {
+    persist: payload.preserve_session !== true,
+  })
   const result = await api.delete('/demo/clear-student-data', {
     params: { user_id: userId },
   })
+
+  if (payload.preserve_session && previousUserId) {
+    setSessionUserId(previousUserId)
+  }
 
   return result
 }

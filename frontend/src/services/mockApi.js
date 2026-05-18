@@ -20,7 +20,7 @@ function getDB() {
     // Eski veritabanı yapısında 'users' yoksa ekleyelim
     if (!db.users) {
       db.users = [
-        { id: 1, name: 'Örnek Öğrenci', email: 'demo@gmail.com', password: '123', monthly_income: 5000, created_at: new Date().toISOString() }
+        { id: 1, name: 'Örnek Öğrenci', email: 'demo@gmail.com', password: '12345', monthly_income: 5000, created_at: new Date().toISOString() }
       ]
       localStorage.setItem(DB_KEY, JSON.stringify(db))
     }
@@ -28,7 +28,7 @@ function getDB() {
   }
   const emptyDb = {
     users: [
-      { id: 1, name: 'Örnek Öğrenci', email: 'demo@gmail.com', password: '123', monthly_income: 5000, created_at: new Date().toISOString() }
+      { id: 1, name: 'Örnek Öğrenci', email: 'demo@gmail.com', password: '12345', monthly_income: 5000, created_at: new Date().toISOString() }
     ],
     transactions: [],
     budgets: [],
@@ -46,12 +46,19 @@ export function getCurrentUserId() {
   return id ? parseInt(id, 10) : null
 }
 
+function resolveUserId(payload = {}) {
+  return Number(payload.user_id) || getCurrentUserId() || 1
+}
+
 const wait = (ms = 350) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export async function loginUser(payload) {
   await wait()
   const db = getDB()
-  const user = db.users.find((u) => u.email === payload.email && u.password === payload.password)
+  const user = db.users.find((u) => {
+    const isDemoLogin = u.email === 'demo@gmail.com' && payload.password === '12345'
+    return u.email === payload.email && (u.password === payload.password || isDemoLogin)
+  })
   
   if (!user) {
     throw new Error('E-posta veya şifre hatalı.')
@@ -263,10 +270,11 @@ export async function sendChatMessage(payload) {
   }
 }
 
-export async function loadStudentDemoData() {
+export async function loadStudentDemoData(payload = {}) {
   await wait(700)
   const db = getDB()
-  const userId = getCurrentUserId() || 1
+  const previousUserId = getCurrentUserId()
+  const userId = resolveUserId(payload)
 
   const newTx = mockTransactions.map(tx => ({ ...tx, id: Date.now() + Math.random(), user_id: userId }))
   const newBudgets = mockBudgets.map(b => ({ ...b, id: Date.now() + Math.random(), user_id: userId }))
@@ -274,6 +282,7 @@ export async function loadStudentDemoData() {
   db.transactions = [...db.transactions.filter(t => t.user_id !== userId), ...newTx]
   db.budgets = [...db.budgets.filter(b => b.user_id !== userId), ...newBudgets]
   setDB(db)
+  localStorage.setItem(SESSION_KEY, String(payload.preserve_session && previousUserId ? previousUserId : userId))
 
   return {
     data: {
@@ -283,13 +292,15 @@ export async function loadStudentDemoData() {
   }
 }
 
-export async function clearStudentDemoData() {
+export async function clearStudentDemoData(payload = {}) {
   await wait(400)
   const db = getDB()
-  const userId = getCurrentUserId() || 1
+  const previousUserId = getCurrentUserId()
+  const userId = resolveUserId(payload)
   db.transactions = db.transactions.filter(t => !(t.user_id === userId && t.source === 'demo'))
   db.budgets = db.budgets.filter(b => b.user_id !== userId)
   setDB(db)
+  localStorage.setItem(SESSION_KEY, String(payload.preserve_session && previousUserId ? previousUserId : userId))
   return { data: { message: 'Örnek veriler temizlendi.' } }
 }
 

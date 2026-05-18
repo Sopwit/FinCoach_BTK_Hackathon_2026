@@ -25,12 +25,14 @@ export default function TransactionsPage() {
   const [uploadResult, setUploadResult] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
+  const [categoryOptions, setCategoryOptions] = useState([])
   const [filterType, setFilterType] = useState('all')
   const [filterSource, setFilterSource] = useState('all')
   const [deletedId, setDeletedId] = useState(null)
   const [editing, setEditing] = useState(null)
   const [uploadError, setUploadError] = useState('')
   const [deletingAll, setDeletingAll] = useState(false)
+  const [confirmDeleteAllOpen, setConfirmDeleteAllOpen] = useState(false)
   const { selectedMonth, selectedUserId } = useDemo()
 
   const loadData = useCallback(async () => {
@@ -47,12 +49,26 @@ export default function TransactionsPage() {
     setLoading(false)
   }, [filterType, filterCategory, filterSource, searchQuery, selectedMonth, selectedUserId])
 
+  const loadCategoryOptions = useCallback(async () => {
+    const res = await getTransactions({
+      user_id: selectedUserId,
+      month: selectedMonth,
+    })
+
+    setCategoryOptions([...new Set(res.data.map((t) => t.category).filter(Boolean))].sort())
+  }, [selectedMonth, selectedUserId])
+
   useEffect(() => {
     const timer = window.setTimeout(loadData, 0)
     return () => window.clearTimeout(timer)
   }, [loadData])
 
-  const allCategories = useMemo(() => [...new Set(transactions.map((t) => t.category))].sort(), [transactions])
+  useEffect(() => {
+    const timer = window.setTimeout(loadCategoryOptions, 0)
+    return () => window.clearTimeout(timer)
+  }, [loadCategoryOptions])
+
+  const allCategories = useMemo(() => categoryOptions, [categoryOptions])
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
@@ -91,6 +107,7 @@ export default function TransactionsPage() {
     const res = await addManualTransaction(payload)
     
     setTransactions((t) => [res.data, ...t])
+    setCategoryOptions((items) => [...new Set([...items, res.data.category].filter(Boolean))].sort())
     setLastAdded(res.data)
     setForm(initialForm)
   }
@@ -101,14 +118,12 @@ export default function TransactionsPage() {
     setTimeout(() => {
       setTransactions((t) => t.filter((tx) => tx.id !== id))
       setDeletedId(null)
+      loadCategoryOptions()
     }, 300)
   }
 
   const handleDeleteAll = async () => {
     if (!transactions.length || deletingAll) return
-
-    const confirmed = window.confirm('Seçili ayın tüm işlemleri silinsin mi? Bu işlem geri alınamaz.')
-    if (!confirmed) return
 
     setDeletingAll(true)
     try {
@@ -117,8 +132,10 @@ export default function TransactionsPage() {
         month: selectedMonth,
       })
       setTransactions([])
+      setCategoryOptions([])
       setDeletedId(null)
       setLastAdded(null)
+      setConfirmDeleteAllOpen(false)
     } finally {
       setDeletingAll(false)
     }
@@ -127,6 +144,7 @@ export default function TransactionsPage() {
   const handleEditSave = async (payload) => {
     const res = await updateTransaction(editing.id, payload)
     setTransactions((items) => items.map((item) => item.id === editing.id ? res.data : item))
+    await loadCategoryOptions()
     setEditing(null)
   }
 
@@ -147,6 +165,7 @@ export default function TransactionsPage() {
       setUploadStatus('success'); 
       setUploadResult({ fileName: selectedFile.name, ...res.data });
       loadData();
+      loadCategoryOptions();
     } catch (error) {
       setUploadStatus('error')
       setUploadError(error.message)
@@ -271,7 +290,7 @@ export default function TransactionsPage() {
               <div className="rounded-xl border border-[#00FF66]/20 bg-[#00FF66]/5 px-4 py-2 text-sm font-bold text-[#00FF66]">{filteredTransactions.length} / {transactions.length} işlem</div>
               <button
                 type="button"
-                onClick={handleDeleteAll}
+                onClick={() => setConfirmDeleteAllOpen(true)}
                 disabled={transactions.length === 0 || deletingAll}
                 className="inline-flex items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-2 text-sm font-bold text-red-300 transition-all hover:border-red-400/50 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -364,6 +383,61 @@ export default function TransactionsPage() {
           onSave={handleEditSave}
         />
       )}
+
+      {confirmDeleteAllOpen && (
+        <DeleteAllConfirmModal
+          count={transactions.length}
+          deleting={deletingAll}
+          onClose={() => setConfirmDeleteAllOpen(false)}
+          onConfirm={handleDeleteAll}
+        />
+      )}
+    </div>
+  )
+}
+
+function DeleteAllConfirmModal({ count, deleting, onClose, onConfirm }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 14 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="glass-card w-full max-w-md overflow-hidden rounded-3xl"
+      >
+        <div className="h-1 w-full bg-gradient-to-r from-red-500 via-red-400 to-[#00FF66]" />
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-red-500/25 bg-red-500/10 text-red-300">
+              <Trash2 size={22} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-white">Tüm işlemler silinsin mi?</h3>
+              <p className="mt-2 text-sm leading-6 text-[#B7C2BC]">
+                Seçili aydaki {count} işlem kalıcı olarak silinecek. Bu işlem geri alınamaz.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col-reverse gap-3 border-t border-[#1B2A24]/60 px-6 py-4 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={deleting}
+            className="rounded-xl border border-[#1B2A24] px-4 py-2.5 text-sm font-bold text-[#B7C2BC] transition hover:border-[#00FF66]/40 hover:text-white disabled:opacity-60"
+          >
+            Vazgeç
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={deleting}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-400/40 bg-red-500/15 px-4 py-2.5 text-sm font-bold text-red-200 transition hover:bg-red-500/25 disabled:opacity-60"
+          >
+            {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+            {deleting ? 'Siliniyor...' : 'Evet, hepsini sil'}
+          </button>
+        </div>
+      </motion.div>
     </div>
   )
 }
