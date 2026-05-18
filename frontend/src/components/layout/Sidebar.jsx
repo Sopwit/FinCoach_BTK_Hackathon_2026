@@ -1,4 +1,4 @@
-import { ChartNoAxesCombined, CircleDollarSign, LayoutDashboard, LogOut, PiggyBank, ReceiptText, X } from 'lucide-react'
+import { ChartNoAxesCombined, LayoutDashboard, LogOut, PiggyBank, ReceiptText, X } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 
 const navItems = [
@@ -32,9 +32,11 @@ export default function Sidebar({ mobile = false, onClose }) {
       <div className="mb-12 relative">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#00FF66] to-[#16C784] text-[#041008] shadow-[0_0_20px_rgba(0,255,102,0.3)]">
-              <CircleDollarSign size={25} />
-            </div>
+            <img
+              src="/fincoach-logo.png"
+              alt="FinCoach"
+              className="h-12 w-12 rounded-2xl border border-[#00FF66]/20 object-cover shadow-[0_0_20px_rgba(0,255,102,0.25)]"
+            />
             <div>
               <div className="text-[26px] font-black tracking-tight text-white leading-none">
                 Fin<span className="text-[#00FF66] drop-shadow-[0_0_8px_rgba(0,255,102,0.5)]">Coach</span>

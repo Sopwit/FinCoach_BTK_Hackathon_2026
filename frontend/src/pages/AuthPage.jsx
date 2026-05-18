@@ -79,14 +79,21 @@ export default function AuthPage() {
             AI Destekli Finans Koçu
           </motion.div>
 
-          <motion.h1
+          <motion.div
             {...fadeUp}
             transition={{ delay: 0.15 }}
-            className="max-w-2xl text-6xl font-black leading-[1.1] tracking-tight text-white md:text-8xl"
+            className="flex items-center gap-4 sm:gap-5"
           >
-            Fin
-            <span className="text-[#00FF66] drop-shadow-[0_0_20px_rgba(0,255,102,0.4)]">Coach</span>
-          </motion.h1>
+            <img
+              src="/fincoach-logo.png"
+              alt="FinCoach"
+              className="h-16 w-16 shrink-0 rounded-[1.4rem] border border-[#00FF66]/25 object-cover shadow-[0_0_28px_rgba(0,255,102,0.25)] md:h-20 md:w-20 md:rounded-[1.7rem]"
+            />
+            <h1 className="max-w-2xl text-6xl font-black leading-[1.1] tracking-tight text-white md:text-8xl">
+              Fin
+              <span className="text-[#00FF66] drop-shadow-[0_0_20px_rgba(0,255,102,0.4)]">Coach</span>
+            </h1>
+          </motion.div>
 
           <motion.p
             {...fadeUp}
