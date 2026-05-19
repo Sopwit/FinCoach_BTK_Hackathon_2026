@@ -1,0 +1,16 @@
+{
+  "projectId": "prj_D0MDqcy10VZUF6JKQugGS49CiObk",
+  "orgId": "team_qYgjBvRCJMIks9zUhRKD5MwY",
+  "projectName": "fincoach-btk-2026",
+  "settings": {
+    "createdAt": 1779199371715,
+    "framework": null,
+    "devCommand": null,
+    "installCommand": null,
+    "buildCommand": null,
+    "outputDirectory": null,
+    "rootDirectory": null,
+    "directoryListing": false,
+    "nodeVersion": "24.x"
+  }
+}
