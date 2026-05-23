@@ -17,10 +17,9 @@ except ImportError:
     PermissionDenied = type("PermissionDenied", (Exception,), {})
 
 
-load_dotenv(
-    dotenv_path=os.path.join(os.path.dirname(__file__), "..", "..", ".env"),
-    override=False,
-)
+_env_path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
+if os.path.isfile(_env_path):
+    load_dotenv(dotenv_path=_env_path, override=False)
 
 
 def _get_env_value(*names: str) -> str | None:

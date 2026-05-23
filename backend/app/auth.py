@@ -10,10 +10,15 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import crud
 
-SECRET_KEY = os.getenv(
-    "JWT_SECRET_KEY",
-    "f1nc04ch-d3v-s3cr3t-k3y-ch4ng3-1n-pr0duct10n-2026!"
-)
+_jwt_key = os.getenv("JWT_SECRET_KEY")
+if not _jwt_key:
+    if os.getenv("VERCEL"):
+        raise RuntimeError(
+            "JWT_SECRET_KEY environment variable is required in production. "
+            "Set it in Vercel Dashboard → Project Settings → Environment Variables."
+        )
+    _jwt_key = "f1nc04ch-d3v-s3cr3t-k3y-ch4ng3-1n-pr0duct10n-2026!"
+SECRET_KEY = _jwt_key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))
 

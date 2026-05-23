@@ -12,7 +12,15 @@ from app.database import Base, engine
 from app.routers import ai, analytics, budgets, chat, dashboard, demo, transactions, users
 Base.metadata.create_all(bind=engine)
 
-limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+
+def _rate_limit_key(request):
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return get_remote_address(request)
+
+
+limiter = Limiter(key_func=_rate_limit_key, default_limits=["60/minute"])
 
 app = FastAPI(
     title="Akıllı Harcama Dedektifi API",
