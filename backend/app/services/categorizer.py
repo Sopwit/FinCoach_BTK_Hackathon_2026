@@ -67,16 +67,6 @@ CATEGORY_KEYWORDS = {
         "kurs",
         "okul"
     ],
-    "Gelir": [
-        "maaş",
-        "maas",
-        "burs",
-        "kyk",
-        "aile desteği",
-        "aile destegi",
-        "freelance",
-        "havale gelen"
-    ],
 }
 
 

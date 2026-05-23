@@ -8,6 +8,7 @@ import {
   getHabits,
   getRecurringPayments,
   getTransactions,
+  resolveUserId,
   sendChatMessage,
 } from '../../services/client'
 import { useDemo } from '../../hooks/useDemo'
@@ -22,7 +23,7 @@ const initialMessages = [
 
 export default function Chatbot() {
   const location = useLocation()
-  const { selectedMonth, selectedUser, selectedUserId } = useDemo()
+  const { selectedMonth, selectedUser, selectedUserId, setSelectedUserId } = useDemo()
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState(initialMessages)
@@ -31,14 +32,14 @@ export default function Chatbot() {
 
   const canSend = useMemo(() => input.trim().length > 0 && !loading, [input, loading])
 
-  const collectContext = async () => {
-    const params = { user_id: selectedUserId, month: selectedMonth }
+  const fetchContext = async (userId) => {
+    const params = { user_id: userId, month: selectedMonth }
     const [dashboardRes, transactionsRes, habitsRes, recurringRes, rawBudgetsRes, budgetStatusRes] = await Promise.all([
       getDashboard({ ...params, include_ai: false }),
       getTransactions(params),
       getHabits(params),
       getRecurringPayments(params),
-      getBudgets({ user_id: selectedUserId }),
+      getBudgets({ user_id: userId }),
       getBudgetStatus(params),
     ])
 
@@ -52,9 +53,27 @@ export default function Chatbot() {
         status: budgetStatusRes.data,
       },
       selectedMonth,
-      selectedUser: selectedUser || { id: selectedUserId },
+      selectedUser: selectedUser || { id: userId },
       currentPage: location.pathname,
     })
+  }
+
+  const collectContext = async () => {
+    try {
+      return await fetchContext(selectedUserId)
+    } catch (err) {
+      const message = err?.message || ''
+      if (!message.includes('Kullanıcı bulunamadı')) {
+        throw err
+      }
+
+      const resolvedUserId = await resolveUserId(selectedUserId)
+      if (resolvedUserId && resolvedUserId !== selectedUserId) {
+        setSelectedUserId(resolvedUserId)
+      }
+
+      return fetchContext(resolvedUserId || selectedUserId)
+    }
   }
 
   const handleSubmit = async (event) => {

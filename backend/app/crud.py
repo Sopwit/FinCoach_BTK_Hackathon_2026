@@ -1,17 +1,35 @@
+import bcrypt
+from calendar import monthrange
+from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.services.categorizer import detect_category, detect_sub_category
-from datetime import date
-from calendar import monthrange
+
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(
+        password.encode("utf-8"), bcrypt.gensalt()
+    ).decode("utf-8")
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    return bcrypt.checkpw(
+        password.encode("utf-8"), password_hash.encode("utf-8")
+    )
+
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(models.User).filter(models.User.email == email).first()
 
 
 def create_user(db: Session, user: schemas.UserCreate):
     db_user = models.User(
         name=user.name,
         email=user.email,
+        password_hash=hash_password(user.password) if user.password else None,
         monthly_income=user.monthly_income
     )
 
@@ -76,6 +94,7 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate):
 
     return db_transaction
 
+
 def get_transactions(
     db: Session,
     user_id: Optional[int] = None,
@@ -88,7 +107,7 @@ def get_transactions(
 ):
     query = db.query(models.Transaction)
 
-    if user_id:
+    if user_id is not None:
         query = query.filter(models.Transaction.user_id == user_id)
 
     if year and month:
@@ -155,6 +174,7 @@ def delete_transactions(
 
     return deleted_count
 
+
 def create_many_transactions(
     db: Session,
     transactions: list[schemas.TransactionCreate],
@@ -193,6 +213,8 @@ def create_many_transactions(
         "created_transactions": created_transactions,
         "skipped_count": skipped_count
     }
+
+
 def get_transaction(db: Session, transaction_id: int):
     return (
         db.query(models.Transaction)
@@ -265,6 +287,8 @@ def delete_transaction(db: Session, transaction_id: int):
     db.commit()
 
     return db_transaction
+
+
 def has_demo_transactions(db: Session, user_id: int):
     return (
         db.query(models.Transaction)
@@ -273,6 +297,8 @@ def has_demo_transactions(db: Session, user_id: int):
         .first()
         is not None
     )
+
+
 def delete_demo_transactions(db: Session, user_id: int):
     demo_transactions = (
         db.query(models.Transaction)
@@ -289,6 +315,8 @@ def delete_demo_transactions(db: Session, user_id: int):
     db.commit()
 
     return deleted_count
+
+
 def transaction_exists(
     db: Session,
     user_id: int,
@@ -316,6 +344,8 @@ def transaction_exists(
         .first()
         is not None
     )
+
+
 def create_budget(db: Session, budget: schemas.BudgetCreate):
     category = budget.category.strip()
 

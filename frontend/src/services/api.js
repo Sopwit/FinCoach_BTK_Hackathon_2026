@@ -2,15 +2,25 @@ import axios from 'axios'
 import { API_BASE_URL } from './config'
 
 const SESSION_KEY = 'fincoach_session'
+const TOKEN_KEY = 'fincoach_token'
 const DEFAULT_DEMO_USER = {
   name: 'Örnek Öğrenci',
   email: 'demo@gmail.com',
   monthly_income: 5000,
 }
+let verifiedSessionUserId = null
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
+})
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 api.interceptors.response.use(
@@ -43,7 +53,37 @@ function getSessionUserId() {
 }
 
 function setSessionUserId(userId) {
+  verifiedSessionUserId = userId
   localStorage.setItem(SESSION_KEY, String(userId))
+}
+
+function clearSessionUserId() {
+  localStorage.removeItem(SESSION_KEY)
+  clearToken()
+  verifiedSessionUserId = null
+}
+
+function isUserNotFoundError(error) {
+  const message = error?.message || ''
+  return message === 'Kullanıcı bulunamadı.' || message === 'User not found'
+}
+
+async function ensureExistingUserId(userId, options = {}) {
+  const { persist = true } = options
+  if (!userId) return null
+  if (verifiedSessionUserId === userId) return userId
+
+  try {
+    const result = await api.get(`/users/${userId}`)
+    if (persist) setSessionUserId(result.data.id)
+    return result.data.id
+  } catch (error) {
+    if (isUserNotFoundError(error)) {
+      if (getSessionUserId() === userId) clearSessionUserId()
+      return null
+    }
+    throw error
+  }
 }
 
 function normalizePeriod(params = {}) {
@@ -54,7 +94,7 @@ function normalizePeriod(params = {}) {
     }
   }
 
-  const monthValue = params.month || params.current_month || '2026-05'
+  const monthValue = params.month || params.current_month
 
   if (typeof monthValue === 'string' && monthValue.includes('-')) {
     const [year, month] = monthValue.split('-')
@@ -64,19 +104,19 @@ function normalizePeriod(params = {}) {
     }
   }
 
+  const now = new Date()
   return {
-    year: Number(params.year || 2026),
-    month: Number(monthValue || 5),
+    year: Number(params.year || now.getFullYear()),
+    month: Number(monthValue || now.getMonth() + 1),
   }
 }
 
 async function ensureUserId(preferredUserId, options = {}) {
   const { persist = true } = options
-  const sessionUserId = getSessionUserId()
-  if (preferredUserId) {
-    if (persist) setSessionUserId(preferredUserId)
-    return preferredUserId
-  }
+  const resolvedPreferred = await ensureExistingUserId(preferredUserId, { persist })
+  if (resolvedPreferred) return resolvedPreferred
+
+  const sessionUserId = await ensureExistingUserId(getSessionUserId(), { persist })
   if (sessionUserId) return sessionUserId
 
   const usersResponse = await api.get('/users/')
@@ -232,28 +272,50 @@ function normalizeDashboard(data) {
   }
 }
 
+function setToken(token) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token)
+  }
+}
+
+function clearToken() {
+  localStorage.removeItem(TOKEN_KEY)
+}
+
+function handleAuthResponse(result) {
+  if (result.data.access_token) {
+    setToken(result.data.access_token)
+  }
+  if (result.data.user) {
+    setSessionUserId(result.data.user.id)
+  }
+  return { data: result.data.user || result.data }
+}
+
 export const createUser = async (payload) => {
   const body = { ...payload }
-  delete body.password
   const result = await api.post('/users/', body)
-  setSessionUserId(result.data.id)
-  return result
+  return handleAuthResponse(result)
 }
 
 export const loginUser = async (payload) => {
-  const usersResponse = await api.get('/users/')
-  const user = usersResponse.data.find((item) => item.email === payload.email)
+  try {
+    const result = await api.post('/users/login', {
+      email: payload.email,
+      password: payload.password,
+    })
+    return handleAuthResponse(result)
+  } catch (err) {
+    if (err.response?.status === 401) {
+      throw new Error('E-posta veya şifre hatalı.', { cause: err })
+    }
 
-  if (!user) {
     if (payload.email === DEFAULT_DEMO_USER.email) {
       return createUser(DEFAULT_DEMO_USER)
     }
 
-    throw new Error('Bu e-posta ile kayıtlı kullanıcı bulunamadı.')
+    throw new Error('Bu e-posta ile kayıtlı kullanıcı bulunamadı.', { cause: err })
   }
-
-  setSessionUserId(user.id)
-  return response(user)
 }
 
 export const getUser = async (userId) => {
@@ -283,11 +345,7 @@ export const addManualTransaction = async (payload) => {
 }
 
 export const uploadTransactions = async (formData) => {
-  const result = await api.post('/transactions/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  })
+  const result = await api.post('/transactions/upload', formData)
 
   return response(normalizeUploadResult(result.data))
 }
@@ -343,7 +401,7 @@ export const getAiAdvice = async (params) => {
 }
 
 export const sendChatMessage = async (payload) => {
-  return api.post('/chat', payload)
+  return api.post('/chat/', payload)
 }
 
 export const loadStudentDemoData = async (payload = {}) => {
@@ -433,4 +491,8 @@ export const deleteTransactions = async (params = {}) => {
   return api.delete('/transactions/', {
     params: await withBackendParams(params),
   })
+}
+
+export const resolveUserId = async (userId, options = {}) => {
+  return ensureUserId(userId, options)
 }

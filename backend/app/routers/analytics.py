@@ -22,7 +22,7 @@ router = APIRouter(
 def get_monthly_summary(
     user_id: int = Query(...),
     year: int = Query(...),
-    month: int = Query(...),
+    month: int = Query(..., ge=1, le=12),
     db: Session = Depends(get_db)
 ):
     user = crud.get_user(db=db, user_id=user_id)
@@ -42,7 +42,7 @@ def get_monthly_summary(
 def get_category_summary(
     user_id: int = Query(...),
     year: int = Query(...),
-    month: int = Query(...),
+    month: int = Query(..., ge=1, le=12),
     db: Session = Depends(get_db)
 ):
     user = crud.get_user(db=db, user_id=user_id)
@@ -62,7 +62,7 @@ def get_category_summary(
 def get_monthly_comparison(
     user_id: int = Query(...),
     year: int = Query(...),
-    month: int = Query(...),
+    month: int = Query(..., ge=1, le=12),
     db: Session = Depends(get_db)
 ):
     user = crud.get_user(db=db, user_id=user_id)
@@ -98,7 +98,7 @@ def get_recurring_payments(
 def get_spending_habits(
     user_id: int = Query(...),
     year: int = Query(...),
-    month: int = Query(...),
+    month: int = Query(..., ge=1, le=12),
     db: Session = Depends(get_db)
 ):
     user = crud.get_user(db=db, user_id=user_id)
@@ -112,11 +112,13 @@ def get_spending_habits(
         year=year,
         month=month
     )
+
+
 @router.get("/health-score")
 def get_financial_health_score(
     user_id: int = Query(...),
     year: int = Query(...),
-    month: int = Query(...),
+    month: int = Query(..., ge=1, le=12),
     db: Session = Depends(get_db)
 ):
     user = crud.get_user(db=db, user_id=user_id)

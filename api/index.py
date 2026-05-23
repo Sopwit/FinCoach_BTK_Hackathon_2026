@@ -1,13 +1,23 @@
 import sys
-from pathlib import Path
+import os
 
-from fastapi import FastAPI
+_backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "backend")
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
 
-BACKEND_DIR = Path(__file__).resolve().parents[1] / "backend"
-if str(BACKEND_DIR) not in sys.path:
-    sys.path.insert(0, str(BACKEND_DIR))
+from app.main import app as backend_app
 
-from app.main import app as backend_app  # noqa: E402
+app = backend_app
 
-app = FastAPI(title="FinCoach Vercel API")
-app.mount("/api", backend_app)
+
+@app.middleware("http")
+async def strip_api_prefix(request, call_next):
+    path = request.url.path
+    if path.startswith("/api/"):
+        request.scope["path"] = path[4:]
+        request.scope["root_path"] = "/api"
+    elif path == "/api":
+        request.scope["path"] = "/"
+        request.scope["root_path"] = "/api"
+    response = await call_next(request)
+    return response

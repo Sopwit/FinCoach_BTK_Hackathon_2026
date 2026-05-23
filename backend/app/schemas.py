@@ -1,12 +1,13 @@
 from datetime import date, datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 
 class UserCreate(BaseModel):
     name: str
     email: Optional[EmailStr] = None
+    password: Optional[str] = None
     monthly_income: float = 0
 
     @field_validator("name")
@@ -19,6 +20,13 @@ class UserCreate(BaseModel):
 
         return value
 
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value):
+        if value is not None and len(value.strip()) < 3:
+            raise ValueError("password en az 3 karakter olmalıdır")
+        return value
+
     @field_validator("monthly_income")
     @classmethod
     def validate_monthly_income(cls, value):
@@ -28,15 +36,25 @@ class UserCreate(BaseModel):
         return value
 
 
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
 class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     email: Optional[str]
     monthly_income: float
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
 
 
 class TransactionCreate(BaseModel):
@@ -90,6 +108,8 @@ class TransactionCreate(BaseModel):
 
 
 class TransactionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     user_id: int
     date: date
@@ -102,16 +122,15 @@ class TransactionResponse(BaseModel):
     note: Optional[str]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        
+
 class BulkTransactionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     inserted_count: int
     skipped_count: int = 0
     transactions: list[TransactionResponse]
 
-    class Config:
-        from_attributes = True
+
 class TransactionUpdate(BaseModel):
     date: Optional[date] = None
     description: Optional[str] = None
@@ -157,6 +176,8 @@ class TransactionUpdate(BaseModel):
             raise ValueError("type sadece 'income' veya 'expense' olabilir")
 
         return value
+
+
 class BudgetCreate(BaseModel):
     user_id: int
     category: str
@@ -211,14 +232,13 @@ class BudgetUpdate(BaseModel):
 
 
 class BudgetResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     user_id: int
     category: str
     monthly_limit: float
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class ChatRequest(BaseModel):

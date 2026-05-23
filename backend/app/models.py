@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column, Integer, String, Float, Date, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
@@ -12,8 +12,9 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=True)
+    password_hash = Column(String, nullable=True)
     monthly_income = Column(Float, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     transactions = relationship(
         "Transaction",
@@ -44,9 +45,11 @@ class Transaction(Base):
 
     note = Column(String, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="transactions")
+
+    
 class Budget(Base):
     __tablename__ = "budgets"
 
@@ -57,4 +60,4 @@ class Budget(Base):
     category = Column(String, nullable=False)
     monthly_limit = Column(Float, nullable=False)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -23,7 +23,7 @@ router = APIRouter(
 def get_ai_advice(
     user_id: int = Query(...),
     year: int = Query(...),
-    month: int = Query(...),
+    month: int = Query(..., ge=1, le=12),
     db: Session = Depends(get_db)
 ):
     user = crud.get_user(db=db, user_id=user_id)

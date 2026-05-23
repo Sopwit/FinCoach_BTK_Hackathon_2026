@@ -1,7 +1,10 @@
+import csv
+from datetime import date, datetime
+from io import BytesIO, StringIO
 from typing import List, Optional
 
-import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from openpyxl import load_workbook
 from sqlalchemy.orm import Session
 
 from app import crud, schemas
@@ -11,6 +14,63 @@ router = APIRouter(
     prefix="/transactions",
     tags=["Transactions"]
 )
+
+
+def parse_transaction_date(value) -> date:
+    if isinstance(value, datetime):
+        return value.date()
+
+    if isinstance(value, date):
+        return value
+
+    text = str(value).strip()
+    if not text:
+        raise ValueError("date empty")
+
+    for date_format in ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y", "%m/%d/%Y"):
+        try:
+            return datetime.strptime(text, date_format).date()
+        except ValueError:
+            continue
+
+    try:
+        return datetime.fromisoformat(text).date()
+    except (ValueError, TypeError):
+        raise ValueError(f"Tarih formatı tanınamadı: {text}")
+
+
+def normalize_upload_row(row: dict) -> dict:
+    return {
+        str(key).strip().lower(): value
+        for key, value in row.items()
+        if key is not None
+    }
+
+
+def parse_csv_transactions(content: bytes) -> list[dict]:
+    try:
+        text = content.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = content.decode("cp1254")
+
+    reader = csv.DictReader(StringIO(text))
+    return [normalize_upload_row(row) for row in reader]
+
+
+def parse_xlsx_transactions(content: bytes) -> list[dict]:
+    workbook = load_workbook(BytesIO(content), read_only=True, data_only=True)
+    sheet = workbook.active
+    rows = sheet.iter_rows(values_only=True)
+    headers = next(rows, None)
+
+    if not headers:
+        return []
+
+    normalized_headers = [str(header).strip().lower() if header is not None else "" for header in headers]
+    return [
+        normalize_upload_row(dict(zip(normalized_headers, row)))
+        for row in rows
+    ]
 
 
 @router.post("/manual", response_model=schemas.TransactionResponse)
@@ -23,8 +83,6 @@ def create_manual_transaction(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    transaction.source = "manual"
-
     return crud.create_transaction(db=db, transaction=transaction)
 
 @router.get("/", response_model=List[schemas.TransactionResponse])
@@ -32,7 +90,7 @@ def list_transactions(
     user_id: Optional[int] = Query(default=None),
     year: Optional[int] = Query(default=None),
     month: Optional[int] = Query(default=None),
-    type: Optional[str] = Query(default=None),
+    tx_type: Optional[str] = Query(default=None, alias="type"),
     category: Optional[str] = Query(default=None),
     source: Optional[str] = Query(default=None),
     search: Optional[str] = Query(default=None),
@@ -43,7 +101,7 @@ def list_transactions(
         user_id=user_id,
         year=year,
         month=month,
-        tx_type=type,
+        tx_type=tx_type,
         category=category,
         source=source,
         search=search
@@ -60,12 +118,13 @@ async def upload_transactions_file(
         raise HTTPException(status_code=404, detail="User not found")
 
     filename = file.filename.lower()
+    content = await file.read()
 
     try:
         if filename.endswith(".csv"):
-            df = pd.read_csv(file.file)
-        elif filename.endswith(".xlsx") or filename.endswith(".xls"):
-            df = pd.read_excel(file.file)
+            rows = parse_csv_transactions(content)
+        elif filename.endswith(".xlsx"):
+            rows = parse_xlsx_transactions(content)
         else:
             raise HTTPException(
                 status_code=400,
@@ -79,7 +138,7 @@ async def upload_transactions_file(
 
     required_columns = {"date", "description", "amount", "type"}
 
-    if not required_columns.issubset(set(df.columns)):
+    if not rows or not required_columns.issubset(set(rows[0].keys())):
         raise HTTPException(
             status_code=400,
             detail="File must contain these columns: date, description, amount, type"
@@ -87,9 +146,9 @@ async def upload_transactions_file(
 
     transactions_to_create = []
 
-    for _, row in df.iterrows():
+    for row in rows:
         try:
-            tx_date = pd.to_datetime(row["date"]).date()
+            tx_date = parse_transaction_date(row["date"])
             description = str(row["description"])
             amount = float(row["amount"])
             tx_type = str(row["type"]).strip().lower()

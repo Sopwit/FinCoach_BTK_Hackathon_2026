@@ -46,8 +46,14 @@ export function getCurrentUserId() {
   return id ? parseInt(id, 10) : null
 }
 
-function resolveUserId(payload = {}) {
-  return Number(payload.user_id) || getCurrentUserId() || 1
+export function resolveUserId(payload = {}) {
+  const resolved = typeof payload === 'object' && payload !== null
+    ? Number(payload.user_id)
+    : Number(payload)
+
+  const userId = resolved || getCurrentUserId() || 1
+  localStorage.setItem(SESSION_KEY, String(userId))
+  return userId
 }
 
 const wait = (ms = 350) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -94,6 +100,7 @@ export async function getUsers() {
   const db = getDB()
   return { data: db.users }
 }
+
 
 export async function getUser(userId) {
   await wait()
@@ -158,7 +165,9 @@ export async function uploadTransactions() {
 export async function getTransactions(params = {}) {
   await wait()
   const db = getDB()
-  const month = params.month || '2026-05'
+  const now = new Date()
+  const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const month = params.month || defaultMonth
   const userId = getCurrentUserId() || 1
 
   const filtered = db.transactions.filter((transaction) =>

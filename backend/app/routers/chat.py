@@ -5,11 +5,12 @@ from app.services.ai_service import generate_chat_answer
 
 
 router = APIRouter(
+    prefix="/chat",
     tags=["Chat"]
 )
 
 
-@router.post("/chat", response_model=schemas.ChatResponse)
+@router.post("/", response_model=schemas.ChatResponse)
 def chat(request: schemas.ChatRequest):
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="message boş olamaz")

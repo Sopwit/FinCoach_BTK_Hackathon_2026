@@ -19,12 +19,16 @@ export default function BudgetsPage() {
 
   const loadBudgets = useCallback(async () => {
     setLoading(true)
-    const [statusResponse, rawResponse] = await Promise.all([
-      getBudgetStatus({ user_id: selectedUserId, month: selectedMonth }),
-      getBudgets({ user_id: selectedUserId }),
-    ])
-    setItems(statusResponse.data.budgets || [])
-    setRawBudgets(rawResponse.data || [])
+    try {
+      const [statusResponse, rawResponse] = await Promise.all([
+        getBudgetStatus({ user_id: selectedUserId, month: selectedMonth }),
+        getBudgets({ user_id: selectedUserId }),
+      ])
+      setItems(statusResponse.data.budgets || [])
+      setRawBudgets(rawResponse.data || [])
+    } catch {
+      // Hata durumunda mevcut veriler korunur
+    }
     setLoading(false)
   }, [selectedMonth, selectedUserId])
 
@@ -43,9 +47,13 @@ export default function BudgetsPage() {
     if (!form.category || Number.isNaN(limit) || limit <= 0) return
 
     setSaving(true)
-    await setBudget({ user_id: selectedUserId, category: form.category, monthly_limit: limit })
-    setForm({ category: 'Yemek', monthly_limit: '' })
-    await loadBudgets()
+    try {
+      await setBudget({ user_id: selectedUserId, category: form.category, monthly_limit: limit })
+      setForm({ category: 'Yemek', monthly_limit: '' })
+      await loadBudgets()
+    } catch {
+      // Hata durumunda form korunur
+    }
     setSaving(false)
   }
 
@@ -53,16 +61,24 @@ export default function BudgetsPage() {
     const limit = Number(editValue)
     if (Number.isNaN(limit) || limit <= 0) return
     setSaving(true)
-    await updateBudget(budgetId, { monthly_limit: limit })
-    setEditingId(null)
-    await loadBudgets()
+    try {
+      await updateBudget(budgetId, { monthly_limit: limit })
+      setEditingId(null)
+      await loadBudgets()
+    } catch {
+      // Hata durumunda düzenleme modu korunur
+    }
     setSaving(false)
   }
 
   const handleDelete = async (budgetId) => {
     setSaving(true)
-    await deleteBudget(budgetId)
-    await loadBudgets()
+    try {
+      await deleteBudget(budgetId)
+      await loadBudgets()
+    } catch {
+      // Hata durumunda bütçe korunur
+    }
     setSaving(false)
   }
 

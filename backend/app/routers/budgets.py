@@ -22,12 +22,6 @@ def create_budget(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if budget.monthly_limit < 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Monthly limit cannot be negative"
-        )
-
     return crud.create_budget(db=db, budget=budget)
 
 
@@ -50,15 +44,6 @@ def update_budget(
     budget_update: schemas.BudgetUpdate,
     db: Session = Depends(get_db)
 ):
-    if (
-        budget_update.monthly_limit is not None
-        and budget_update.monthly_limit < 0
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail="Monthly limit cannot be negative"
-        )
-
     updated_budget = crud.update_budget(
         db=db,
         budget_id=budget_id,
@@ -94,7 +79,7 @@ def delete_budget(
 def get_budget_status(
     user_id: int = Query(...),
     year: int = Query(...),
-    month: int = Query(...),
+    month: int = Query(..., ge=1, le=12),
     db: Session = Depends(get_db)
 ):
     user = crud.get_user(db=db, user_id=user_id)

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { DEFAULT_MONTH, DEFAULT_USER_ID } from '../services/config'
-import { getHealth, getUser, getUsers } from '../services/client'
+import { getHealth, getUser, getUsers, resolveUserId } from '../services/client'
 import { DemoContext } from './DemoContextValue'
 
 const SESSION_KEY = 'fincoach_session'
@@ -38,9 +38,29 @@ export function DemoProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    getUser(selectedUserId)
-      .then((response) => setSelectedUser(response.data))
-      .catch(() => setSelectedUser(null))
+    let cancelled = false
+
+    const syncUser = async () => {
+      try {
+        const resolvedUserId = await resolveUserId(selectedUserId)
+        if (cancelled) return
+
+        if (resolvedUserId && resolvedUserId !== selectedUserId) {
+          setSelectedUserIdState(resolvedUserId)
+        }
+
+        const response = await getUser(resolvedUserId)
+        if (!cancelled) setSelectedUser(response.data)
+      } catch {
+        if (!cancelled) setSelectedUser(null)
+      }
+    }
+
+    syncUser()
+
+    return () => {
+      cancelled = true
+    }
   }, [selectedUserId])
 
   const value = useMemo(() => ({

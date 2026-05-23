@@ -142,7 +142,7 @@ pip install -r requirements.txt
 Eğer `requirements.txt` yoksa paketleri manuel kur:
 
 ```powershell
-pip install fastapi uvicorn sqlalchemy pydantic python-dotenv python-multipart pandas openpyxl email-validator google-generativeai
+pip install fastapi uvicorn sqlalchemy pydantic python-dotenv python-multipart pandas openpyxl email-validator google-genai
 ```
 
 Kurulumdan sonra requirements dosyasını oluştur veya güncelle:

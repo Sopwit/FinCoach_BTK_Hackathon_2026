@@ -15,6 +15,20 @@ import {
 import { clearStudentDemoData, loadStudentDemoData } from '../../services/client'
 import { useDemo } from '../../hooks/useDemo'
 
+const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
+
+function generateMonthOptions() {
+  const now = new Date()
+  const options = []
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = `${monthNames[d.getMonth()]} ${d.getFullYear()}`
+    options.push({ value, label })
+  }
+  return options
+}
+
 export default function Topbar({ onMenuToggle }) {
   const [loadingDemo, setLoadingDemo] = useState(false)
   const [clearingDemo, setClearingDemo] = useState(false)
@@ -129,7 +143,7 @@ export default function Topbar({ onMenuToggle }) {
               setSelectedUserId(event.target.value)
               refreshUsers()
             }}
-            className="hidden"
+            className="rounded-xl border border-[#1B2A24] bg-[#0B1110]/60 px-3 py-2 text-xs font-semibold text-[#B7C2BC] backdrop-blur-lg focus:border-[#00FF66]/50 focus:outline-none transition-all cursor-pointer"
           >
             {users.length === 0 ? (
               <option value={selectedUserId}>Kullanıcı {selectedUserId}</option>
@@ -145,9 +159,9 @@ export default function Topbar({ onMenuToggle }) {
               onChange={(event) => setSelectedMonth(event.target.value)}
               className="appearance-none rounded-xl border border-[#1B2A24] bg-[#0B1110]/60 pl-9 sm:pl-11 pr-8 sm:pr-10 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-[#B7C2BC] backdrop-blur-lg focus:border-[#00FF66]/50 focus:outline-none transition-all cursor-pointer"
             >
-              <option value="2026-05">Mayıs 2026</option>
-              <option value="2026-04">Nisan 2026</option>
-              <option value="2026-03">Mart 2026</option>
+              {generateMonthOptions().map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
             </select>
             <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#8A968F]">
               <ChevronDown size={15} />

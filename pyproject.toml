@@ -1,3 +1,11 @@
+[build-system]
+requires = ["setuptools>=64.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+exclude = []
+
 [project]
 name = "fincoach-api"
 version = "0.1.0"
@@ -12,6 +20,9 @@ dependencies = [
   "python-multipart==0.0.28",
   "openpyxl==3.1.5",
   "email-validator==2.3.0",
-  "google-generativeai==0.8.6",
+  "google-genai>=1.0.0",
   "psycopg2-binary==2.9.9",
+  "bcrypt==4.3.0",
+  "PyJWT==2.10.1",
+  "slowapi==0.1.9",
 ]

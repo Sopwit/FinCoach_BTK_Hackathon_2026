@@ -7,26 +7,41 @@ import time
 from copy import deepcopy
 from dotenv import load_dotenv
 
-import google.generativeai as genai
+from google import genai
 
 try:
     from google.api_core.exceptions import ResourceExhausted, NotFound, PermissionDenied
-except Exception:
-    ResourceExhausted = Exception
-    NotFound = Exception
-    PermissionDenied = Exception
+except ImportError:
+    ResourceExhausted = type("ResourceExhausted", (Exception,), {})
+    NotFound = type("NotFound", (Exception,), {})
+    PermissionDenied = type("PermissionDenied", (Exception,), {})
 
 
-load_dotenv()
+load_dotenv(
+    dotenv_path=os.path.join(os.path.dirname(__file__), "..", "..", ".env"),
+    override=False,
+)
 
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+def _get_env_value(*names: str) -> str | None:
+    for name in names:
+        value = os.getenv(name)
+        if value and value.strip():
+            return value.strip()
+    return None
+
+
+GEMINI_API_KEY = _get_env_value(
+    "GEMINI_API_KEY",
+    "GOOGLE_API_KEY",
+    "GOOGLE_GENERATIVE_AI_API_KEY",
+)
 
 # .env içinde GEMINI_MODEL varsa önce onu dener.
 # Yoksa en hafif modelden başlar.
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
 
-AI_DEBUG = os.getenv("FINCOACH_AI_DEBUG", "true").lower() == "true"
+AI_DEBUG = os.getenv("FINCOACH_AI_DEBUG", "false").lower() == "true"
 AI_RAISE_ERRORS = os.getenv("AI_RAISE_ERRORS", "false").lower() == "true"
 AI_ADVICE_CACHE_TTL_SECONDS = int(os.getenv("AI_ADVICE_CACHE_TTL_SECONDS", "300"))
 
@@ -65,19 +80,19 @@ def _unique_models(models: list[str]) -> list[str]:
 
 def _log_response_metadata(response):
     try:
-        logger.error("[GEMINI DEBUG] Raw response: %r", response)
+        logger.debug("[GEMINI DEBUG] Raw response: %r", response)
     except Exception:
         logger.error("[GEMINI DEBUG] Raw response yazdırılamadı.")
 
     try:
-        logger.error("[GEMINI DEBUG] prompt_feedback: %r", getattr(response, "prompt_feedback", None))
+        logger.debug("[GEMINI DEBUG] prompt_feedback: %r", getattr(response, "prompt_feedback", None))
     except Exception:
-        logger.error("[GEMINI DEBUG] prompt_feedback okunamadı.")
+        logger.debug("[GEMINI DEBUG] prompt_feedback okunamadı.")
 
     try:
-        logger.error("[GEMINI DEBUG] candidates: %r", getattr(response, "candidates", None))
+        logger.debug("[GEMINI DEBUG] candidates: %r", getattr(response, "candidates", None))
     except Exception:
-        logger.error("[GEMINI DEBUG] candidates okunamadı.")
+        logger.debug("[GEMINI DEBUG] candidates okunamadı.")
 
 
 def _extract_response_text(response) -> str:
@@ -111,7 +126,7 @@ def _generate_with_available_model(prompt: str) -> tuple[str, str]:
     if not GEMINI_API_KEY:
         raise ValueError("GEMINI_API_KEY eksik. .env dosyasını kontrol et.")
 
-    genai.configure(api_key=GEMINI_API_KEY)
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
     tried_models = []
     failed_models = []
@@ -123,8 +138,7 @@ def _generate_with_available_model(prompt: str) -> tuple[str, str]:
         try:
             logger.debug("[GEMINI TRY MODEL] %s", model_name)
 
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(model=model_name, contents=prompt)
 
             text = _extract_response_text(response)
 
@@ -222,15 +236,11 @@ def _get_cached_advice(cache_key: str) -> dict | None:
         return None
 
     advice = deepcopy(cached["advice"])
-    advice["cached"] = True
-    advice["cache_ttl_seconds"] = AI_ADVICE_CACHE_TTL_SECONDS
     return advice
 
 
 def _set_cached_advice(cache_key: str, advice: dict) -> dict:
     cached_advice = deepcopy(advice)
-    cached_advice["cached"] = False
-    cached_advice["cache_ttl_seconds"] = AI_ADVICE_CACHE_TTL_SECONDS
 
     AI_ADVICE_CACHE[cache_key] = {
         "created_at": time.time(),

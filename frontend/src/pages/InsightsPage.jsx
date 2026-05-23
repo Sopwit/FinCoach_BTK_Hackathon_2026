@@ -46,19 +46,23 @@ export default function InsightsPage() {
       previous_month: DEFAULT_PREVIOUS_MONTH,
     }
 
-    const [compRes, recRes, habRes, healthRes, aiRes] = await Promise.all([
-      getMonthlyComparison(params),
-      getRecurringPayments(params),
-      getHabits(params),
-      getHealthScore(params),
-      getAiAdvice(params),
-    ])
+    try {
+      const [compRes, recRes, habRes, healthRes, aiRes] = await Promise.all([
+        getMonthlyComparison(params),
+        getRecurringPayments(params),
+        getHabits(params),
+        getHealthScore(params),
+        getAiAdvice(params),
+      ])
 
-    setMonthlyComparison(compRes.data)
-    setRecurringPayments(recRes.data)
-    setHabits(habRes.data)
-    setHealthScore(healthRes.data)
-    setAiAdvice(aiRes.data)
+      setMonthlyComparison(compRes.data)
+      setRecurringPayments(recRes.data)
+      setHabits(habRes.data)
+      setHealthScore(healthRes.data)
+      setAiAdvice(aiRes.data)
+    } catch {
+      // Hata durumunda mevcut veriler korunur
+    }
     setLoading(false)
   }, [selectedMonth, selectedUserId])
 
@@ -69,8 +73,12 @@ export default function InsightsPage() {
 
   const refreshAiAdvice = async () => {
     setAiLoading(true)
-    const response = await getAiAdvice({ user_id: selectedUserId, month: selectedMonth })
-    setAiAdvice(response.data)
+    try {
+      const response = await getAiAdvice({ user_id: selectedUserId, month: selectedMonth })
+      setAiAdvice(response.data)
+    } catch {
+      // AI yenileme hatası sessizce atlanır
+    }
     setAiLoading(false)
   }
 
@@ -285,7 +293,9 @@ function InsightsLoading() {
 
 function getHighestIncrease(items) {
   if (!items.length) return '-'
-  const highest = [...items].sort((a, b) => b.change_percent - a.change_percent)[0]
+  const valid = items.filter((item) => item.change_percent != null)
+  if (!valid.length) return '-'
+  const highest = [...valid].sort((a, b) => b.change_percent - a.change_percent)[0]
   return `${highest.category} +%${highest.change_percent}`
 }
 

@@ -8,6 +8,7 @@ export const {
   createUser,
   loginUser,
   getUsers,
+  resolveUserId,
   getUser,
   getHealth,
   addManualTransaction,

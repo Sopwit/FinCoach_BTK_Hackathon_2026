@@ -1,73 +1,104 @@
-# FinCoach
+# FinCoach — AI Destekli Finansal Koç
 
-FinCoach, gelir-gider kayıtlarını analiz eden, kategori bazlı bütçe takibi yapan ve AI destekli kişisel finans önerileri üreten bir harcama yönetimi uygulamasıdır. Kullanıcı manuel işlem ekleyebilir, CSV/Excel dosyası yükleyebilir, bütçe limitleri tanımlayabilir ve harcama alışkanlıklarını tek panelden takip edebilir.
+<div align="center">
 
-## Özellikler
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.136-009688?logo=fastapi)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-- Gelir/gider işlemi ekleme, düzenleme, silme ve seçili ayın tüm işlemlerini temizleme
-- CSV/XLSX dosyasıyla toplu işlem içe aktarma
-- Açıklamaya göre otomatik kategori ve alt kategori tahmini
-- Aylık gelir, gider, kalan bütçe ve kategori dağılımı panelleri
-- Kategori bazlı bütçe limiti ekleme, güncelleme ve aşım takibi
-- Önceki ay / bu ay karşılaştırması
-- Tekrar eden ödemeler ve sık harcama alışkanlıkları analizi
-- Gemini ile AI finans analizi, tasarruf planı ve sohbet asistanı
-- AI önerileri için 5 dakikalık cache; veri değişmedikçe sayfa yenilemede tekrar token harcanmaz
-- Örnek öğrenci finans profiliyle hızlı başlangıç
+**BTK Hackathon 2026 — Finansal Farkındalık Kategorisi**
 
-## Teknoloji
+</div>
 
-**Frontend:** React, Vite, Tailwind CSS, Framer Motion, Recharts, Lucide React  
-**Backend:** FastAPI, SQLAlchemy, SQLite, Pandas/OpenPyXL, Google Gemini API
+FinCoach, gelir-gider kayıtlarını analiz eden, kategori bazlı bütçe takibi yapan ve **Google Gemini AI** destekli kişisel finans önerileri üreten bir harcama yönetimi uygulamasıdır.
 
-## Proje Yapısı
+> 🏆 **Hackathon için tasarlandı:** Çalışan demo senaryosu, offline mock API, tek tıkla örnek veri yükleme ve etkileyici UI ile sunuma hazır.
 
-```text
+---
+
+## ✨ Özellikler
+
+- **Gelir/Gider Yönetimi** — Ekleme, düzenleme, silme, CSV/XLSX toplu içe aktarma
+- **Bütçe Takibi** — Kategori bazlı limit belirleme ve aşım uyarıları
+- **Finansal Analiz** — Aylık karşılaştırma, tekrar eden ödemeler, harcama alışkanlıkları
+- **AI Danışman** — Google Gemini ile kişisel finans analizi ve tasarruf önerileri
+- **Finansal Sağlık Skoru** — Harcama alışkanlıklarına göre 0-100 arası puan
+- **Sohbet Asistanı** — FinCoach Chat ile verileriniz üzerinden soru sorun
+- **Mock/Offline Mod** — Backend olmadan tam çalışma (sunum için ideal)
+- **Demo Senaryo** — Örnek öğrenci profiliyle tek tıkla başlangıç
+
+---
+
+## 🛠 Teknoloji Stack'i
+
+| Katman | Teknoloji |
+|--------|-----------|
+| **Frontend** | React 19, Vite 8, Tailwind CSS 4, Framer Motion, Recharts, React Router 7 |
+| **Backend** | FastAPI, SQLAlchemy 2.0, Pydantic v2, Google Gemini API |
+| **Veritabanı** | SQLite (lokal) / PostgreSQL (Neon, production) |
+| **Auth** | JWT (PyJWT) + bcrypt şifreleme |
+| **Deployment** | Vercel (Frontend + Serverless Python API) |
+| **Güvenlik** | Rate limiting (slowapi), CORS yapılandırması |
+
+---
+
+## 📁 Proje Yapısı
+
+```
 FinCoach_BTK_Hackathon_2026/
-  backend/
-    app/
-      routers/       API endpointleri
-      services/      analiz, kategori ve AI servisleri
-      models.py      veritabanı modelleri
-      schemas.py     request/response şemaları
-      crud.py        veritabanı işlemleri
-    requirements.txt
-    .env.example
-  frontend/
-    public/          logo ve statik dosyalar
-    src/
-      components/    layout ve chat bileşenleri
-      pages/         uygulama sayfaları
-      services/      API client ve mock API
-      context/       seçili kullanıcı/ay durumu
+├── api/index.py             # Vercel serverless entry
+├── backend/
+│   ├── app/
+│   │   ├── main.py          # FastAPI uygulama + middleware
+│   │   ├── auth.py          # JWT token yönetimi
+│   │   ├── database.py      # SQLAlchemy engine
+│   │   ├── models.py        # User, Transaction, Budget
+│   │   ├── schemas.py       # Pydantic şemaları
+│   │   ├── crud.py          # Veritabanı işlemleri
+│   │   ├── routers/         # 8 API router
+│   │   └── services/        # analiz, kategori, AI servisleri
+│   ├── tests/               # Pytest testleri
+│   └── .env.example
+├── frontend/
+│   ├── src/
+│   │   ├── pages/           # Auth, Dashboard, Transactions, Budgets, Insights
+│   │   ├── components/      # AppLayout, Sidebar, Topbar, Chatbot
+│   │   ├── services/        # api.js, mockApi.js, client.js
+│   │   ├── context/         # DemoContext
+│   │   ├── data/            # Mock veriler
+│   │   └── utils/           # formatCurrency, formatDate
+│   └── .env.example
+├── vercel.json
+├── pyproject.toml
+└── .gitignore
 ```
 
-## Kurulum
+---
 
-Gereksinimler:
+## 🚀 Kurulum
 
-- Python 3.11+
+### Gereksinimler
+- Python ≥3.12, <3.13
 - Node.js 20+
-- Gemini API key
+- Gemini API key ([Google AI Studio](https://aistudio.google.com/))
 
-Backend kurulumu:
+### Backend
 
 ```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
-copy .env.example .env
+cp .env.example .env
 ```
 
-`backend/.env` dosyasını düzenleyin:
+`.env` dosyasına Gemini API anahtarınızı ekleyin:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-2.5-flash-lite
-FINCOACH_AI_DEBUG=true
-AI_RAISE_ERRORS=false
-AI_ADVICE_CACHE_TTL_SECONDS=300
 ```
 
 Backend'i çalıştırın:
@@ -76,57 +107,77 @@ Backend'i çalıştırın:
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Frontend kurulumu:
+API dökümantasyonu: http://127.0.0.1:8000/docs
+
+### Frontend
 
 ```bash
 cd frontend
 npm install
+cp .env.example .env
 npm run dev
 ```
 
-Uygulama varsayılan olarak `http://localhost:5173` adresinde açılır. API adresi varsayılan olarak `http://127.0.0.1:8000` kabul edilir. Gerekirse frontend için `.env` oluşturup API adresini değiştirebilirsiniz:
+Uygulama http://localhost:5173 adresinde açılır.
 
-```env
-VITE_API_BASE_URL=http://127.0.0.1:8000
-VITE_USE_MOCK_API=false
-```
-
-## Kullanım Akışı
-
-1. Uygulamaya giriş yapın veya örnek öğrenci profiliyle başlayın.
-2. Harcama Yönetimi sayfasından manuel işlem ekleyin ya da CSV/XLSX dosyası yükleyin.
-3. Bütçeler sayfasından kategori limitlerinizi belirleyin.
-4. Genel Bakış panelinde gelir, gider, kalan bütçe ve uyarıları takip edin.
-5. Finansal Detaylar sayfasında tekrar eden ödemeleri, sık alışkanlıkları ve AI tasarruf planını inceleyin.
-6. Sağ alttaki FinCoach Chat ile mevcut finansal veriniz üzerinden soru sorun.
-
-## Faydalı Komutlar
-
-Frontend:
+### Test
 
 ```bash
-npm run dev
-npm run lint
-npm run build
-npm run preview
+cd backend
+pytest tests/ -v
 ```
 
-Backend:
+---
+
+## 📊 Kullanım Akışı
+
+1. **Giriş** — Hesap oluşturun veya "Örnek Öğrenci Profiliyle Başla" butonuna tıklayın
+2. **İşlemler** — Harcama Yönetimi sayfasından manuel işlem ekleyin veya CSV/XLSX yükleyin
+3. **Bütçeler** — Kategori limitlerinizi belirleyin
+4. **Dashboard** — Gelir, gider, kalan bütçe ve uyarıları tek panelde izleyin
+5. **İçgörüler** — Aylık karşılaştırma, tekrar eden ödemeler, AI tasarruf planı
+6. **AI Sohbet** — FinCoach Chat ile verileriniz üzerinden soru sorun
+
+---
+
+## 🌐 Vercel Deployment
 
 ```bash
-uvicorn app.main:app --reload
-python -m compileall -q app
+# Vercel CLI kurulumu
+npm i -g vercel
+
+# Build ve deploy (Python 3.12+ gerekli)
+vercel --prod
 ```
 
-API dokümantasyonu backend çalışırken şu adreste görüntülenebilir:
+> ⚠️ **Not:** Lokal Vercel build'i Python 3.12+ gerektirir. Vercel'in cloud altyapısı Python 3.12'yi destekler. `vercel.json` içinde `@vercel/python` builder kullanılır.
 
-```text
-http://127.0.0.1:8000/docs
-```
+### Production için environment değişkenleri:
+| Değişken | Açıklama |
+|----------|----------|
+| `GEMINI_API_KEY` | Google Gemini API anahtarı |
+| `DATABASE_URL` | PostgreSQL bağlantı dizesi (Neon) |
+| `JWT_SECRET_KEY` | JWT imzalama anahtarı |
+| `CORS_ORIGINS` | İzin verilen originler (virgülle ayrılmış) |
 
-## Notlar
+---
 
-- SQLite veritabanı `backend/spendwise.db` dosyasında tutulur.
-- Örnek veri aynı kullanıcı için tekrar yüklenirse önce mevcut örnek kayıtları temizlemek gerekir.
-- AI analizi Gemini API key olmadan çalışmaz; ancak uygulamanın temel işlem, bütçe ve analiz akışları kullanılabilir.
-- Production dağıtımında CORS ayarları, gizli env değerleri ve veritabanı konfigürasyonu ortamınıza göre sıkılaştırılmalıdır.
+## 🔒 Güvenlik
+
+- JWT token bazlı kimlik doğrulama
+- bcrypt ile şifre hashleme
+- Rate limiting (dakikada 60 istek)
+- Yapılandırılabilir CORS
+- `.env` dosyaları git'te tutulmaz
+
+---
+
+## 📝 Lisans
+
+[MIT](LICENSE) © 2026 SurhayKoc
+
+---
+
+<div align="center">
+  <strong>BTK Hackathon 2026 — Finansal Farkındalık Kategorisi</strong>
+</div>

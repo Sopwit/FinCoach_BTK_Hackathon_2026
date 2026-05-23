@@ -44,13 +44,17 @@ export default function DashboardPage() {
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true)
-    const response = await getDashboard({
-      user_id: selectedUserId,
-      month: selectedMonth,
-      include_ai: true,
-    })
-    setDashboard(response.data)
-    setAiAdvice(response.data.advice)
+    try {
+      const response = await getDashboard({
+        user_id: selectedUserId,
+        month: selectedMonth,
+        include_ai: true,
+      })
+      setDashboard(response.data)
+      setAiAdvice(response.data.advice)
+    } catch {
+      // Hata durumunda mevcut veriler korunur
+    }
     setLoading(false)
   }, [selectedMonth, selectedUserId])
 
@@ -61,11 +65,15 @@ export default function DashboardPage() {
 
   const refreshAiAdvice = async () => {
     setAiLoading(true)
-    const response = await getAiAdvice({
-      user_id: selectedUserId,
-      month: selectedMonth,
-    })
-    setAiAdvice(response.data)
+    try {
+      const response = await getAiAdvice({
+        user_id: selectedUserId,
+        month: selectedMonth,
+      })
+      setAiAdvice(response.data)
+    } catch {
+      // AI yenileme hatası sessizce atlanır
+    }
     setAiLoading(false)
   }
 
@@ -110,7 +118,7 @@ export default function DashboardPage() {
 
       <DashboardCategories categories={dashboard?.categories || []} />
 
-      <BudgetAlerts budgets={dashboard?.budget_status || dashboard?.charts?.budget_usage || []} />
+      <BudgetAlerts budgets={dashboard?.budget_status || []} />
     </div>
   )
 }
@@ -236,7 +244,7 @@ function DashboardSignals({ dashboard }) {
 function DashboardCharts({ dashboard, aiAdvice, aiLoading, onRefreshAi }) {
   const comparison = dashboard?.charts?.monthly_comparison || []
   const habits = dashboard?.charts?.spending_habits || []
-  const budgets = dashboard?.budget_status || dashboard?.charts?.budget_usage || []
+  const budgets = dashboard?.budget_status || []
 
   return (
     <div className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,0.95fr)]">

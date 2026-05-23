@@ -6,13 +6,18 @@ import { useDemo } from '../hooks/useDemo'
 import { formatCurrency } from '../utils/formatCurrency'
 import { formatDate } from '../utils/formatDate'
 
+function getDefaultMonthDate(day) {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
 const csvPreviewRows = [
-  { date: '2026-05-03', description: 'Trendyol Yemek', amount: '-430', type: 'expense' },
-  { date: '2026-05-05', description: 'Spotify', amount: '-59.99', type: 'expense' },
-  { date: '2026-05-01', description: 'KYK Burs', amount: '3000', type: 'income' },
+  { date: getDefaultMonthDate(3), description: 'Trendyol Yemek', amount: '-430', type: 'expense' },
+  { date: getDefaultMonthDate(5), description: 'Spotify', amount: '-59.99', type: 'expense' },
+  { date: getDefaultMonthDate(1), description: 'KYK Burs', amount: '3000', type: 'income' },
 ]
 
-const initialForm = { date: '2026-05-29', description: '', amount: '', type: 'expense', category: 'auto', note: '' }
+const initialForm = { date: getDefaultMonthDate(29), description: '', amount: '', type: 'expense', category: 'auto', note: '' }
 
 export default function TransactionsPage() {
   const fileInputRef = useRef(null)
@@ -104,22 +109,29 @@ export default function TransactionsPage() {
       note: form.note.trim(),
     }
 
-    const res = await addManualTransaction(payload)
-    
-    setTransactions((t) => [res.data, ...t])
-    setCategoryOptions((items) => [...new Set([...items, res.data.category].filter(Boolean))].sort())
-    setLastAdded(res.data)
-    setForm(initialForm)
+    try {
+      const res = await addManualTransaction(payload)
+      setTransactions((t) => [res.data, ...t])
+      setCategoryOptions((items) => [...new Set([...items, res.data.category].filter(Boolean))].sort())
+      setLastAdded(res.data)
+      setForm(initialForm)
+    } catch {
+      // Hata durumunda form korunur
+    }
   }
 
   const handleDelete = async (id) => {
     setDeletedId(id)
-    await deleteTransaction(id)
-    setTimeout(() => {
-      setTransactions((t) => t.filter((tx) => tx.id !== id))
+    try {
+      await deleteTransaction(id)
+      setTimeout(() => {
+        setTransactions((t) => t.filter((tx) => tx.id !== id))
+        setDeletedId(null)
+        loadCategoryOptions()
+      }, 300)
+    } catch {
       setDeletedId(null)
-      loadCategoryOptions()
-    }, 300)
+    }
   }
 
   const handleDeleteAll = async () => {
@@ -142,10 +154,14 @@ export default function TransactionsPage() {
   }
 
   const handleEditSave = async (payload) => {
-    const res = await updateTransaction(editing.id, payload)
-    setTransactions((items) => items.map((item) => item.id === editing.id ? res.data : item))
-    await loadCategoryOptions()
-    setEditing(null)
+    try {
+      const res = await updateTransaction(editing.id, payload)
+      setTransactions((items) => items.map((item) => item.id === editing.id ? res.data : item))
+      await loadCategoryOptions()
+      setEditing(null)
+    } catch {
+      // Hata durumunda düzenleme modu korunur
+    }
   }
 
   const handleFileSelect = (e) => { const f = e.target.files?.[0]; if (!f) return; setSelectedFile(f); setUploadStatus('idle'); setUploadResult(null); setUploadError('') }

@@ -1,9 +1,18 @@
-from fastapi import FastAPI
+import os
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
 from app.database import Base, engine
 from app.routers import ai, analytics, budgets, chat, dashboard, demo, transactions, users
 Base.metadata.create_all(bind=engine)
+
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
 app = FastAPI(
     title="Akıllı Harcama Dedektifi API",
@@ -11,13 +20,28 @@ app = FastAPI(
     version="0.1.0"
 )
 
+app.state.limiter = limiter
+
+
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Çok fazla istek gönderdiniz. Lütfen bekleyin."},
+    )
+
+
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+
+ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=ALLOWED_ORIGINS if ALLOWED_ORIGINS != ["*"] else ["*"],
+    allow_credentials=ALLOWED_ORIGINS != ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(users.router)
 app.include_router(transactions.router)

@@ -24,7 +24,7 @@ router = APIRouter(
 def get_dashboard_data(
     user_id: int = Query(...),
     year: int = Query(...),
-    month: int = Query(...),
+    month: int = Query(..., ge=1, le=12),
     include_ai: bool = Query(default=True),
     db: Session = Depends(get_db)
 ):
